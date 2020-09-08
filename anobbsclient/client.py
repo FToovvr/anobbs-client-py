@@ -64,7 +64,10 @@ class Client:
             如果为真，将会过滤掉与分析无关的内容，以方便分析。
         """
 
-        with_login = self.__check_login(page=page, options=options)
+        with_login = self.page_requires_login(page=page, options=options)
+        if with_login and not self.has_cookie(options):
+            raise RequiresLoginException()
+
         max_attempts = self.__get_max_attempts(options)
         logging.debug(f"将获取串：{id} 第 {page} 页，已登陆：{with_login}")
 
@@ -83,6 +86,8 @@ class Client:
                     logging.error(
                         f'无法获取串 {id} 第 {page} 页: {e}. 已经失败 {max_attempts} 次. 放弃')
                     raise e
+            except Exception as e:
+                raise e
             else:
                 return thread
 
@@ -138,7 +143,7 @@ class Client:
             "Accept-Encoding": "gzip, deflate, br",
         })
 
-    def __check_login(self, page: int, options: RequestOptions = {}) -> bool:
+    def page_requires_login(self, page: int, options: RequestOptions = {}) -> bool:
         """
         Returns
         -------
@@ -150,19 +155,11 @@ class Client:
         gate_keeper_page_number = self.__get_gatekeeper_page_number(options)
 
         if login_policy == "enforce":
-            if not has_cookie:
-                raise RequiresLoginException()
             return True
 
-        if ((not has_cookie or login_policy == "always_no")
-                and page > gate_keeper_page_number):
-            raise RequiresLoginException()
-
         if login_policy == "when_has_cookie":
-            return has_cookie
-        elif login_policy == "always_no":
-            return False
-        elif login_policy == "when_required":
+            return has_cookie or page > gate_keeper_page_number
+        elif login_policy in ("always_no", "when_required"):
             return page > gate_keeper_page_number
 
         raise ShouldNotReachException()
@@ -171,6 +168,8 @@ class Client:
         return self.__get_user_cookie(options) != None
 
     def __get_user_cookie(self, options: RequestOptions = {}) -> UserCookie:
+        if self.__get_login_policy(options) == "always_no":
+            return None
         return (
             options.get("user_cookie", None)
             or self.default_request_options.get("user_cookie", None)

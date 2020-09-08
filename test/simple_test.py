@@ -82,26 +82,27 @@ class SimpleTest(unittest.TestCase):
             Row("always_no", False, 1, False, False),
             Row("always_no", False, 100, True, None),
         ]:
+            logging.debug(row)
+
             options = {
                 "login_policy": row.policy,
             }
             if row.with_cookie:
                 options["user_cookie"] = user_cookie
 
-            def fn(): return client._Client__check_login(
-                page=row.page_number,
-                options=options,
-            )
-
-            logging.debug(row)
-
             if row.expects_exception:
-                needs_login = self.assertRaises(
-                    anobbsclient.RequiresLoginException, fn)
+                def fn(): return client.get_thread(
+                    id=29556631,  # 无关。因为如果行为符合预期，将不会执行请求
+                    page=row.page_number,
+                    options=options,
+                )
+                self.assertRaises(anobbsclient.RequiresLoginException, fn)
             else:
-                needs_login = fn()
-
-            self.assertEqual(needs_login, row.expected_needs_login)
+                needs_login = client.page_requires_login(
+                    page=row.page_number,
+                    options=options,
+                )
+                self.assertEqual(needs_login, row.expected_needs_login)
 
     def test_get_thread(self):
         client = self.new_client()
