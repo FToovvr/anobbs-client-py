@@ -21,7 +21,7 @@ class SimpleTest(unittest.TestCase):
 
         cls.luwei_cookie_expires = os.environ["ANOBBS_LUWEI_COOKIE_EXPIRES"]
 
-        cls.user_hash = os.environ["ANOBBS_USERHASH"]
+        cls.user_hash = os.environ.get("ANOBBS_USERHASH", None)
 
     def new_client(self) -> anobbsclient.Client:
         return anobbsclient.Client(
@@ -102,3 +102,28 @@ class SimpleTest(unittest.TestCase):
                 needs_login = fn()
 
             self.assertEqual(needs_login, row.expected_needs_login)
+
+    def test_get_thread(self):
+        client = self.new_client()
+
+        luwei_thread = client.get_thread(49607, page=1)
+
+        self.assertEqual(luwei_thread.body["userid"], "g3qeXeYq")
+        self.assertEqual(luwei_thread.body["content"], "这是芦苇")
+        self.assertNotEqual(luwei_thread.body["img"], "")
+
+    def test_get_thread_with_login(self):
+        if SimpleTest.user_hash == None:
+            self.skipTest(reason="需要登录")
+
+        client = self.new_client()
+
+        options = {
+            "user_cookie": anobbsclient.UserCookie(
+                userhash=SimpleTest.user_hash,
+            ),
+        }
+
+        luwei_thread = client.get_thread(49607, page=250, options=options)
+
+        self.assertGreater(int(luwei_thread.replies[0]["id"]), 10000000)
