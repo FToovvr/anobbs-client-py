@@ -10,7 +10,7 @@ import requests
 from .usercookie import UserCookie
 from .options import RequestOptions, LoginPolicy, LuweiCookieFormat
 from .response import ThreadResponse
-from .utils import current_timestamp_ms_offset_to_utc8
+from .utils import current_timestamp_ms_offset_to_utc8, calculate_bandwidth_usage
 from .exceptions import ShouldNotReachException, RequiresLoginException
 
 
@@ -84,7 +84,7 @@ class Client:
 
         return ThreadResponse(
             body=resp.json(object_pairs_hook=OrderedDict),
-            content_size=len(resp.content),
+            bandwidth_usage=calculate_bandwidth_usage(resp),
         )
 
     def __setup_headers(self, options: RequestOptions, with_login: bool = False):

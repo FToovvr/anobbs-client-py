@@ -1,4 +1,4 @@
-from typing import OrderedDict, Any, List
+from typing import OrderedDict, Any, List, Tuple
 from dataclasses import dataclass
 
 
@@ -15,12 +15,12 @@ class Response:
         字典项保留原始顺序。
         可能经过后期处理。
 
-    content_size : int
-        处理前的原始响应的字节数。
+    content_size : Tuple[int, int]
+        上传字节数与下载字节数。
     """
 
     body: OrderedDict[str, Any]
-    content_size: int
+    bandwidth_usage: Tuple[int, int]
 
 
 @dataclass
