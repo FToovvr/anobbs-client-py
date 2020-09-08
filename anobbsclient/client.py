@@ -1,4 +1,4 @@
-from typing import Optional, OrderedDict, Dict, Any, Union, Literal
+from typing import Optional, OrderedDict, Dict, Any, Union, Literal, NamedTuple, Tuple
 from dataclasses import dataclass, field
 
 import time
@@ -9,9 +9,14 @@ import requests
 
 from .usercookie import UserCookie
 from .options import RequestOptions, LoginPolicy, LuweiCookieFormat
-from .response import ThreadResponse
-from .utils import current_timestamp_ms_offset_to_utc8, calculate_bandwidth_usage
+from .objects import Thread
+from .utils import current_timestamp_ms_offset_to_utc8
 from .exceptions import ShouldNotReachException, RequiresLoginException
+
+
+class BandwidthUsage(NamedTuple):
+    uploaded: int
+    downloaded: int
 
 
 @dataclass
@@ -47,7 +52,7 @@ class Client:
         default_factory=requests.Session,
     )
 
-    def get_thread(self, id: int, page: int, options: RequestOptions = {}, for_analysis: bool = False) -> ThreadResponse:
+    def get_thread(self, id: int, page: int, options: RequestOptions = {}, for_analysis: bool = False) -> Tuple[Thread, BandwidthUsage]:
         """
         获取指定串的指定页。
 
@@ -73,11 +78,11 @@ class Client:
 
         for i in range(1, max_attempts + 1):
             try:
-                thread = self.__get_thread(
+                (thread, bandwidth_usage) = self.__get_thread(
                     id, page=page, options=options, with_login=with_login)
                 if for_analysis:
                     thread.replies = list(filter(
-                        lambda post: post["userid"] != "芦苇", thread.replies))
+                        lambda post: post.user_id != "芦苇", thread.replies))
             except (requests.exceptions.RequestException, ValueError) as e:
                 if i < max_attempts:
                     logging.warning(
@@ -89,9 +94,9 @@ class Client:
             except Exception as e:
                 raise e
             else:
-                return thread
+                return thread, bandwidth_usage
 
-    def __get_thread(self, id: int, page: int, options: RequestOptions, with_login: bool = False) -> ThreadResponse:
+    def __get_thread(self, id: int, page: int, options: RequestOptions, with_login: bool = False) -> Tuple[Thread, BandwidthUsage]:
 
         self.__setup_headers(options=options, with_login=with_login)
 
@@ -104,10 +109,7 @@ class Client:
             urllib.parse.urlencode(queries)
         resp = self.__session.get(url)
 
-        return ThreadResponse(
-            body=resp.json(object_pairs_hook=OrderedDict),
-            bandwidth_usage=calculate_bandwidth_usage(resp),
-        )
+        return Thread(resp.json(object_pairs_hook=OrderedDict)), _calculate_bandwidth_usage(resp)
 
     def __setup_headers(self, options: RequestOptions, with_login: bool = False):
 
@@ -198,3 +200,29 @@ class Client:
             options.get("max_attempts", None)
             or self.default_request_options.get("max_attempts", 3)
         )
+
+
+def _calculate_bandwidth_usage(resp: requests.Response) -> BandwidthUsage:
+    """
+    …
+
+    See: https://stackoverflow.com/a/33217154
+    """
+
+    request_line_size = len(resp.request.method) + \
+        len(resp.request.path_url) + 12
+    request_size = request_line_size + \
+        __calculate_header_size(resp.request.headers) + \
+        int(resp.request.headers.get("content-length", 0)
+            )  # 没有 body 就不会生成 Content-Length?
+
+    response_line_size = len(resp.reason) + 15
+    response_size = response_line_size + \
+        __calculate_header_size(resp.headers) + \
+        int(resp.headers["content-length"])
+
+    return BandwidthUsage(request_size, response_size)
+
+
+def __calculate_header_size(headers) -> int:
+    return sum(len(key) + len(value) + 4 for key, value in headers.items()) + 2

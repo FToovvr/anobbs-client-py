@@ -105,13 +105,15 @@ class SimpleTest(unittest.TestCase):
                 self.assertEqual(needs_login, row.expected_needs_login)
 
     def test_get_thread(self):
+        # TODO: 测试更多字段是否正确处理
+
         client = self.new_client()
 
-        luwei_thread = client.get_thread(49607, page=1, for_analysis=True)
+        (luwei_thread, _) = client.get_thread(49607, page=1, for_analysis=True)
 
-        self.assertEqual(luwei_thread.body["userid"], "g3qeXeYq")
-        self.assertEqual(luwei_thread.body["content"], "这是芦苇")
-        self.assertNotEqual(luwei_thread.body["img"], "")
+        self.assertEqual(luwei_thread.user_id, "g3qeXeYq")
+        self.assertEqual(luwei_thread.content, "这是芦苇")
+        self.assertNotEqual(luwei_thread.attachment_base, None)
 
     def test_get_thread_with_login(self):
         if SimpleTest.user_hash == None:
@@ -125,8 +127,8 @@ class SimpleTest(unittest.TestCase):
             ),
         }
 
-        luwei_thread = client.get_thread(
+        (luwei_thread, _) = client.get_thread(
             49607, page=250, options=options, for_analysis=True,
         )
 
-        self.assertGreater(int(luwei_thread.replies[0]["id"]), 10000000)
+        self.assertGreater(int(luwei_thread.replies[0].id), 10000000)
