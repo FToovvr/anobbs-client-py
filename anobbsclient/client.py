@@ -47,7 +47,23 @@ class Client:
         default_factory=requests.Session,
     )
 
-    def get_thread(self, id: int, page: int, options: RequestOptions = {}) -> ThreadResponse:
+    def get_thread(self, id: int, page: int, options: RequestOptions = {}, for_analysis: bool = False) -> ThreadResponse:
+        """
+        获取指定串的指定页。
+
+        id : int
+            串号。
+
+        page : int
+            页数。
+
+        options : RequestOptions
+            请求选项。
+
+        for_analysis : bool
+            如果为真，将会过滤掉与分析无关的内容，以方便分析。
+        """
+
         with_login = self.__check_login(page=page, options=options)
         max_attempts = self.__get_max_attempts(options)
         logging.debug(f"将获取串：{id} 第 {page} 页，已登陆：{with_login}")
@@ -56,8 +72,9 @@ class Client:
             try:
                 thread = self.__get_thread(
                     id, page=page, options=options, with_login=with_login)
-                thread.replies = list(filter(
-                    lambda post: post["userid"] != "芦苇", thread.replies))
+                if for_analysis:
+                    thread.replies = list(filter(
+                        lambda post: post["userid"] != "芦苇", thread.replies))
             except (requests.exceptions.RequestException, ValueError) as e:
                 if i < max_attempts:
                     logging.warning(

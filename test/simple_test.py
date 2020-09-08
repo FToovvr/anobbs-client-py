@@ -106,7 +106,7 @@ class SimpleTest(unittest.TestCase):
     def test_get_thread(self):
         client = self.new_client()
 
-        luwei_thread = client.get_thread(49607, page=1)
+        luwei_thread = client.get_thread(49607, page=1, for_analysis=True)
 
         self.assertEqual(luwei_thread.body["userid"], "g3qeXeYq")
         self.assertEqual(luwei_thread.body["content"], "这是芦苇")
@@ -124,6 +124,8 @@ class SimpleTest(unittest.TestCase):
             ),
         }
 
-        luwei_thread = client.get_thread(49607, page=250, options=options)
+        luwei_thread = client.get_thread(
+            49607, page=250, options=options, for_analysis=True,
+        )
 
         self.assertGreater(int(luwei_thread.replies[0]["id"]), 10000000)
