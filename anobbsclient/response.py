@@ -1,6 +1,8 @@
 from typing import OrderedDict, Any, List, Tuple
 from dataclasses import dataclass
 
+import json
+
 
 @dataclass
 class Response:
@@ -21,6 +23,9 @@ class Response:
 
     body: OrderedDict[str, Any]
     bandwidth_usage: Tuple[int, int]
+
+    def to_json(self) -> str:
+        return json.dumps(self.body, indent=2, ensure_ascii=False)
 
 
 @dataclass
