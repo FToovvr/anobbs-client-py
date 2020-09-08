@@ -41,7 +41,7 @@ class RequestOptions(TypedDict, total=False):
     Keys
     ----
 
-    "user_ookie" : UserCookie
+    "user_cookie" : UserCookie
         使用的用户饼干，默认为 ``None``。
         若为 ``None``, 则不使用饼干。
 
