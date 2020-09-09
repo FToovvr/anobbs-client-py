@@ -162,37 +162,28 @@ class Client:
     def has_cookie(self, options: RequestOptions = {}) -> bool:
         return self.__get_user_cookie(options) != None
 
+    def __get_option_value(self, external_options: RequestOptions, key: str, default: Any = None) -> Any:
+        return (
+            external_options.get(key, None)
+            or self.default_request_options.get(key, default)
+        )
+
     def __get_user_cookie(self, options: RequestOptions = {}) -> UserCookie:
         if self.__get_login_policy(options) == "always_no":
             return None
-        return (
-            options.get("user_cookie", None)
-            or self.default_request_options.get("user_cookie", None)
-        )
+        return self.__get_option_value(options, "user_cookie")
 
     def __get_login_policy(self, options: RequestOptions = {}) -> LoginPolicy:
-        return (
-            options.get("login_policy", None)
-            or self.default_request_options.get("login_policy", "when_required")
-        )
+        return self.__get_option_value(options, "login_policy", "when_required")
 
     def __get_thread_gatekeeper_page_number(self, options: RequestOptions = {}) -> int:
-        return (
-            options.get("thread_gatekeeper_page_number", None)
-            or self.default_request_options.get("thread_gatekeeper_page_number", 99)
-        )
+        return self.__get_option_value(options, "thread_gatekeeper_page_number", 99)
 
     def __get_uses_luwei_cookie_format(self, options: RequestOptions = {}) -> Union[Literal[False], LuweiCookieFormat]:
-        return (
-            options.get("uses_luwei_cookie_format", None)
-            or self.default_request_options.get("uses_luwei_cookie_format", False)
-        )
+        return self.__get_option_value(options, "uses_luwei_cookie_format", False)
 
     def __get_max_attempts(self, options: RequestOptions = {}) -> int:
-        return (
-            options.get("max_attempts", None)
-            or self.default_request_options.get("max_attempts", 3)
-        )
+        return self.__get_option_value(options, "max_attempts", 3)
 
 
 def _try_request(fn: Callable[[], Any], description: str, max_attempts: int) -> Any:
