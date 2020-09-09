@@ -1,4 +1,4 @@
-from typing import Optional, OrderedDict, Dict, Any, Union, Literal, NamedTuple, Tuple
+from typing import Optional, OrderedDict, Dict, Any, Union, Literal, NamedTuple, Tuple, Callable
 from dataclasses import dataclass, field
 
 import time
@@ -52,7 +52,7 @@ class Client:
         default_factory=requests.Session,
     )
 
-    def get_thread(self, id: int, page: int, options: RequestOptions = {}, for_analysis: bool = False) -> Tuple[Thread, BandwidthUsage]:
+    def get_thread_page(self, id: int, page: int, options: RequestOptions = {}, for_analysis: bool = False) -> Tuple[Thread, BandwidthUsage]:
         """
         获取指定串的指定页。
 
@@ -73,30 +73,21 @@ class Client:
         if with_login and not self.has_cookie(options):
             raise RequiresLoginException()
 
-        max_attempts = self.__get_max_attempts(options)
         logging.debug(f"将获取串：{id} 第 {page} 页，已登陆：{with_login}")
 
-        for i in range(1, max_attempts + 1):
-            try:
-                (thread, bandwidth_usage) = self.__get_thread(
-                    id, page=page, options=options, with_login=with_login)
-                if for_analysis:
-                    thread.replies = list(filter(
-                        lambda post: post.user_id != "芦苇", thread.replies))
-            except (requests.exceptions.RequestException, ValueError) as e:
-                if i < max_attempts:
-                    logging.warning(
-                        f'获取串 {id} 第 {page} 页失败: {e}. 尝试: {i}/{max_attempts}')
-                else:
-                    logging.error(
-                        f'无法获取串 {id} 第 {page} 页: {e}. 已经失败 {max_attempts} 次. 放弃')
-                    raise e
-            except Exception as e:
-                raise e
-            else:
-                return thread, bandwidth_usage
+        def fn(): return self.__get_thread_page(
+            id, page=page, options=options, with_login=with_login)
 
-    def __get_thread(self, id: int, page: int, options: RequestOptions, with_login: bool = False) -> Tuple[Thread, BandwidthUsage]:
+        (thread_page, bandwidth_usage) = _try_request(
+            fn, f"获取串 {id} 第 {page} 页", self.__get_max_attempts(options))
+
+        if for_analysis:
+            thread_page.replies = list(filter(
+                lambda post: post.user_id != "芦苇", thread_page.replies))
+
+        return thread_page, bandwidth_usage
+
+    def __get_thread_page(self, id: int, page: int, options: RequestOptions, with_login: bool = False) -> Tuple[Thread, BandwidthUsage]:
 
         self.__setup_headers(options=options, with_login=with_login)
 
@@ -200,6 +191,22 @@ class Client:
             options.get("max_attempts", None)
             or self.default_request_options.get("max_attempts", 3)
         )
+
+
+def _try_request(fn: Callable[[], Any], description: str, max_attempts: int) -> Any:
+    for i in range(1, max_attempts + 1):
+        try:
+            return fn()
+        except (requests.exceptions.RequestException, ValueError) as e:
+            if i < max_attempts:
+                logging.warning(
+                    f'执行「{description}」失败: {e}. 尝试: {i}/{max_attempts}')
+            else:
+                logging.error(
+                    f'无法执行「{description}」: {e}. 已经失败 {max_attempts} 次. 放弃')
+                raise e
+        except Exception as e:
+            raise e
 
 
 def _calculate_bandwidth_usage(resp: requests.Response) -> BandwidthUsage:

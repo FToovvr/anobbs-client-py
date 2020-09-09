@@ -16,7 +16,7 @@ client = Client(
     host="adnmb2.com",
 )
 
-luwei_thread = client.get_thread(49607, page=1)
+luwei_thread = client.get_thread_page(49607, page=1)
 
 print(luwei_thread.body["content"])
 #=> 这是芦苇

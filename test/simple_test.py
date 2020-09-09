@@ -91,7 +91,7 @@ class SimpleTest(unittest.TestCase):
                 options["user_cookie"] = user_cookie
 
             if row.expects_exception:
-                def fn(): return client.get_thread(
+                def fn(): return client.get_thread_page(
                     id=29556631,  # 无关。因为如果行为符合预期，将不会执行请求
                     page=row.page_number,
                     options=options,
@@ -104,18 +104,19 @@ class SimpleTest(unittest.TestCase):
                 )
                 self.assertEqual(needs_login, row.expected_needs_login)
 
-    def test_get_thread(self):
+    def test_get_thread_page(self):
         # TODO: 测试更多字段是否正确处理
 
         client = self.new_client()
 
-        (luwei_thread, _) = client.get_thread(49607, page=1, for_analysis=True)
+        (luwei_thread, _) = client.get_thread_page(
+            49607, page=1, for_analysis=True)
 
         self.assertEqual(luwei_thread.user_id, "g3qeXeYq")
         self.assertEqual(luwei_thread.content, "这是芦苇")
         self.assertNotEqual(luwei_thread.attachment_base, None)
 
-    def test_get_thread_with_login(self):
+    def test_get_thread_page_with_login(self):
         if SimpleTest.user_hash == None:
             self.skipTest(reason="需要登录")
 
@@ -127,7 +128,7 @@ class SimpleTest(unittest.TestCase):
             ),
         }
 
-        (luwei_thread, _) = client.get_thread(
+        (luwei_thread, _) = client.get_thread_page(
             49607, page=250, options=options, for_analysis=True,
         )
 
