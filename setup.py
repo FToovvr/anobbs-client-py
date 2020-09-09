@@ -5,7 +5,7 @@ with open("README.md", "r") as fh:
 
 setuptools.setup(
     name="anobbs-api-wrapper-py",
-    version="0.0.0-dev6",
+    version="0.0.0-dev7",
     author="FToovvr",
     author_email="FToovvr@protonmail.com",
     description="Simple AnoBBS API wrapper",
