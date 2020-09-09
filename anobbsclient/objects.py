@@ -109,4 +109,12 @@ class Thread(Post):
         return json.dumps(data, indent=2, ensure_ascii=False)
 
 
+@dataclass
+class TimelineThread(Thread):
+
+    @property
+    def board_id(self) -> int:
+        return int(self._raw["fid"])
+
+
 Board = List[Thread]

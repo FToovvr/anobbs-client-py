@@ -105,6 +105,17 @@ class SimpleTest(unittest.TestCase):
                 )
                 self.assertEqual(needs_login, row.expected_needs_login)
 
+    def test_get_board_page(self):
+
+        client = self.new_client()
+
+        self.assertRaises(anobbsclient.NoPermissionException,
+                          client.get_board_page, 4, page=100)
+
+        (qst, _) = client.get_board_page(111, page=1)
+
+        self.assertGreater(len(qst), 0)
+
     def test_get_thread_page(self):
         # TODO: 测试更多字段是否正确处理
 

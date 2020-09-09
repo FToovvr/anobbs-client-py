@@ -9,9 +9,9 @@ import requests
 
 from .usercookie import UserCookie
 from .options import RequestOptions, LoginPolicy, LuweiCookieFormat
-from .objects import Thread
+from .objects import Board, Thread
 from .utils import current_timestamp_ms_offset_to_utc8
-from .exceptions import ShouldNotReachException, RequiresLoginException
+from .exceptions import ShouldNotReachException, RequiresLoginException, NoPermissionException
 
 
 class BandwidthUsage(NamedTuple):
@@ -51,6 +51,55 @@ class Client:
         init=False,
         default_factory=requests.Session,
     )
+
+    def get_board_page(self, board_id: int, page: int, options: RequestOptions = {}) -> Tuple[Board, BandwidthUsage]:
+        """
+        获取指定串的指定页。
+
+        board_id : int
+            版块 ID。
+
+        page : int
+            页数。
+
+        options : RequestOptions
+            请求选项。
+        """
+
+        if page > self.__get_board_gatekeeper_page_number(options):
+            raise NoPermissionException()
+
+        with_login = self.__get_login_policy(
+            options) in ["enforce", "when_has_cookie"]
+        if with_login and not self.has_cookie(options):
+            raise RequiresLoginException()
+
+        logging.debug(f"将获取版块：{id} 第 {page} 页，已登陆：{with_login}")
+
+        def fn(): return self.__get_board_page(
+            board_id, page=page, options=options, with_login=with_login)
+
+        (board_page, bandwidth_usage) = _try_request(
+            fn, f"获取版块 {id} 第 {page} 页", self.__get_max_attempts(options))
+
+        return board_page, bandwidth_usage
+
+    def __get_board_page(self, board_id: int, page: int, options: RequestOptions = {}, with_login: bool = False) -> Tuple[Board, BandwidthUsage]:
+
+        self.__setup_headers(options=options, with_login=with_login)
+
+        queries = OrderedDict()
+        queries["id"] = board_id
+        queries["page"] = page
+        if self.appid != None:
+            queries["appid"] = self.appid
+        queries["__t"] = current_timestamp_ms_offset_to_utc8()
+        url = f"https://{self.host}/Api/showf?" + \
+            urllib.parse.urlencode(queries)
+        resp = self.__session.get(url)
+
+        threads = resp.json(object_pairs_hook=OrderedDict)
+        return list(map(lambda thread: Thread(thread), threads)), _calculate_bandwidth_usage(resp)
 
     def get_thread_page(self, id: int, page: int, options: RequestOptions = {}, for_analysis: bool = False) -> Tuple[Thread, BandwidthUsage]:
         """
@@ -178,6 +227,9 @@ class Client:
 
     def __get_thread_gatekeeper_page_number(self, options: RequestOptions = {}) -> int:
         return self.__get_option_value(options, "thread_gatekeeper_page_number", 99)
+
+    def __get_board_gatekeeper_page_number(self, options: RequestOptions = {}) -> int:
+        return self.__get_option_value(options, "board_gatekeeper_page_number", 99)
 
     def __get_uses_luwei_cookie_format(self, options: RequestOptions = {}) -> Union[Literal[False], LuweiCookieFormat]:
         return self.__get_option_value(options, "uses_luwei_cookie_format", False)
