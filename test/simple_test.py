@@ -234,3 +234,29 @@ class SimpleTest(unittest.TestCase):
             ):
                 assert(False)
         self.assertRaises(anobbsclient.GatekeptException, case_gatekept)
+
+    def test_thread_page_reverse_walker_with_login(self):
+
+        client = self.new_client()
+
+        (page100, _) = client.get_thread_page(29184693, page=100)
+        gatekeeper_post_id = list(page100.replies)[-1].id
+
+        page_count = 0
+        for (n, page, _) in walkthread.ThreadPageReverseWalker(
+            client=client,
+            thread_id=29184693,
+            upper_bound_page=101,
+            end_condition=walkthread.LowerBoundPageEndCondition(
+                page=100, page_seen_max_post_id=gatekeeper_post_id,
+            ),
+            gatekeeper_post_id=gatekeeper_post_id,
+            request_options={
+                "user_cookie": self.user_cookie,
+            },
+        ):
+            self.assertTrue(n in [100, 101])
+            page_count += 1
+            if n == 100:
+                self.assertEqual(len(page.replies), 0)
+        self.assertEqual(page_count, 2)
