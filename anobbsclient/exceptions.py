@@ -28,3 +28,28 @@ class NoPermissionException(ClientException):
         super(NoPermissionException, self).__init__(
             message="无操作权限",
         )
+
+
+@dataclass
+class GatekeptException(Exception):
+    # TODO: extends ClientException
+
+    context: str
+    current_page_number: int
+    gatekeeper_post_id: int
+
+
+@dataclass
+class UnreachableLowerBoundPostIDException(Exception):
+    # TODO: extends ClientException?
+
+    lower_bound_post_id: int
+
+
+@dataclass
+class UnexpectedLowerBoundPostIDException(Exception):
+    # TODO: extends ClientException?
+
+    current_page_number: int
+    expected_lower_bound_page_number: int
+    lower_bound_post_id: int

@@ -4,6 +4,7 @@ import unittest
 import logging
 
 import anobbsclient
+from anobbsclient.walk import walkthread
 
 import os
 import sys
@@ -146,3 +147,85 @@ class SimpleTest(unittest.TestCase):
         )
 
         self.assertGreater(int(luwei_thread.replies[0].id), 10000000)
+
+    def test_thread_page_reverse_walker(self):
+
+        client = self.new_client()
+
+        walker = walkthread.ThreadPageReverseWalker(
+            client=client,
+            thread_id=29184693,
+            upper_bound_page=3,
+            end_condition=walkthread.LowerBoundPageEndCondition(
+                page=1, page_seen_max_post_id=None,
+            ),
+            gatekeeper_post_id=99999999,
+        )
+
+        page_count, last_page_max_post_id = 0,  None
+        for (n, page, _) in walker:
+            self.assertTrue(n in [1, 2, 3])
+            page_count += 1
+            if n == 3:
+                last_page_max_post_id = page.replies[-1].id
+        self.assertEqual(page_count, 3)
+
+        walker = walkthread.ThreadPageReverseWalker(
+            client=client,
+            thread_id=29184693,
+            upper_bound_page=4,
+            end_condition=walkthread.LowerBoundPageEndCondition(
+                page=3, page_seen_max_post_id=last_page_max_post_id,
+            ),
+            gatekeeper_post_id=99999999,
+        )
+
+        page_count = 0
+        for (n, page, _) in walker:
+            self.assertTrue(n in [3, 4])
+            page_count += 1
+            if n == 3:
+                self.assertEqual(len(page.replies), 0)
+        self.assertEqual(page_count, 2)
+
+    def test_thread_page_reverse_walker_no_login(self):
+
+        client = self.new_client()
+
+        def case_no_login():
+            for (_, _, _) in walkthread.ThreadPageReverseWalker(
+                client=client,
+                thread_id=29184693,
+                upper_bound_page=101,
+                end_condition=walkthread.LowerBoundPageEndCondition(
+                    page=1, page_seen_max_post_id=None,
+                ),
+                gatekeeper_post_id=99999999,
+            ):
+                assert(False)
+        self.assertRaises(anobbsclient.RequiresLoginException, case_no_login)
+
+    def test_thread_page_reverse_walker_gatekept(self):
+
+        client = self.new_client()
+
+        (page100, _) = client.get_thread_page(29184693, page=100)
+        gatekeeper_post_id = list(page100.replies)[-1].id
+
+        def case_gatekept():
+            for (_, _, _) in walkthread.ThreadPageReverseWalker(
+                client=client,
+                thread_id=29184693,
+                upper_bound_page=101,
+                end_condition=walkthread.LowerBoundPageEndCondition(
+                    page=1, page_seen_max_post_id=None,
+                ),
+                gatekeeper_post_id=gatekeeper_post_id,
+                request_options={
+                    "user_cookie": anobbsclient.UserCookie(
+                        userhash="",  # 无效的饼干
+                    ),
+                },
+            ):
+                assert(False)
+        self.assertRaises(anobbsclient.GatekeptException, case_gatekept)

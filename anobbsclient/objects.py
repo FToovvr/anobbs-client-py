@@ -103,6 +103,7 @@ class ThreadBody(Post):
 
 @dataclass
 class Thread(ThreadBody):
+    # TODO: 改名为 ``ThreadPage```
 
     _replies: Optional[List[Post]]
 
