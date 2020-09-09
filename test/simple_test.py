@@ -34,6 +34,13 @@ class SimpleTest(unittest.TestCase):
             },
         )
 
+    @property
+    def user_cookie(self) -> anobbsclient.UserCookie:
+        assert(SimpleTest.user_hash != None)
+        return anobbsclient.UserCookie(
+            userhash=SimpleTest.user_hash,
+        )
+
     def test_request_options(self):
         client = self.new_client()
 
@@ -137,9 +144,7 @@ class SimpleTest(unittest.TestCase):
         client = self.new_client()
 
         options = {
-            "user_cookie": anobbsclient.UserCookie(
-                userhash=SimpleTest.user_hash,
-            ),
+            "user_cookie": self.user_cookie,
         }
 
         (luwei_thread, _) = client.get_thread_page(
