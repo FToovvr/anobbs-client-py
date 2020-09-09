@@ -67,10 +67,10 @@ class Client:
             请求选项。
         """
 
-        if page > self.__get_board_gatekeeper_page_number(options):
+        if page > self.get_board_gatekeeper_page_number(options):
             raise NoPermissionException()
 
-        with_login = self.__get_login_policy(
+        with_login = self.get_login_policy(
             options) in ["enforce", "when_has_cookie"]
         if with_login and not self.has_cookie(options):
             raise RequiresLoginException()
@@ -81,7 +81,7 @@ class Client:
             board_id, page=page, options=options, with_login=with_login)
 
         (board_page, bandwidth_usage) = _try_request(
-            fn, f"获取版块 {id} 第 {page} 页", self.__get_max_attempts(options))
+            fn, f"获取版块 {id} 第 {page} 页", self.get_max_attempts(options))
 
         return board_page, bandwidth_usage
 
@@ -131,7 +131,7 @@ class Client:
             id, page=page, options=options, with_login=with_login)
 
         (thread_page, bandwidth_usage) = _try_request(
-            fn, f"获取串 {id} 第 {page} 页", self.__get_max_attempts(options))
+            fn, f"获取串 {id} 第 {page} 页", self.get_max_attempts(options))
 
         if for_analysis:
             thread_page.replies = list(filter(
@@ -158,7 +158,7 @@ class Client:
     def __setup_headers(self, options: RequestOptions, with_login: bool = False):
 
         if with_login:
-            user_cookie = self.__get_user_cookie(options)
+            user_cookie = self.get_user_cookie(options)
             assert(user_cookie != None)
             cookie = requests.cookies.create_cookie(
                 name="userhash", value=user_cookie.userhash, domain=self.host,
@@ -168,7 +168,7 @@ class Client:
             requests.cookies.remove_cookie_by_name(
                 self.__session.cookies, "userhash", domain=self.host)
 
-        luwei_cookie_format = self.__get_uses_luwei_cookie_format(options)
+        luwei_cookie_format = self.get_uses_luwei_cookie_format(options)
         if isinstance(luwei_cookie_format, dict):
             # 芦苇岛搞错了？
             for (k, v) in {
@@ -196,9 +196,9 @@ class Client:
         是否需要使用饼干请求服务器。
         """
 
-        login_policy = self.__get_login_policy(options)
+        login_policy = self.get_login_policy(options)
         has_cookie = self.has_cookie(options)
-        gate_keeper_page_number = self.__get_thread_gatekeeper_page_number(
+        gate_keeper_page_number = self.get_thread_gatekeeper_page_number(
             options)
 
         if login_policy == "enforce":
@@ -212,7 +212,7 @@ class Client:
         raise ShouldNotReachException()
 
     def has_cookie(self, options: RequestOptions = {}) -> bool:
-        return self.__get_user_cookie(options) != None
+        return self.get_user_cookie(options) != None
 
     def __get_option_value(self, external_options: RequestOptions, key: str, default: Any = None) -> Any:
         return (
@@ -220,24 +220,24 @@ class Client:
             or self.default_request_options.get(key, default)
         )
 
-    def __get_user_cookie(self, options: RequestOptions = {}) -> UserCookie:
-        if self.__get_login_policy(options) == "always_no":
+    def get_user_cookie(self, options: RequestOptions = {}) -> UserCookie:
+        if self.get_login_policy(options) == "always_no":
             return None
         return self.__get_option_value(options, "user_cookie")
 
-    def __get_login_policy(self, options: RequestOptions = {}) -> LoginPolicy:
+    def get_login_policy(self, options: RequestOptions = {}) -> LoginPolicy:
         return self.__get_option_value(options, "login_policy", "when_required")
 
-    def __get_thread_gatekeeper_page_number(self, options: RequestOptions = {}) -> int:
+    def get_thread_gatekeeper_page_number(self, options: RequestOptions = {}) -> int:
         return self.__get_option_value(options, "thread_gatekeeper_page_number", 99)
 
-    def __get_board_gatekeeper_page_number(self, options: RequestOptions = {}) -> int:
+    def get_board_gatekeeper_page_number(self, options: RequestOptions = {}) -> int:
         return self.__get_option_value(options, "board_gatekeeper_page_number", 99)
 
-    def __get_uses_luwei_cookie_format(self, options: RequestOptions = {}) -> Union[Literal[False], LuweiCookieFormat]:
+    def get_uses_luwei_cookie_format(self, options: RequestOptions = {}) -> Union[Literal[False], LuweiCookieFormat]:
         return self.__get_option_value(options, "uses_luwei_cookie_format", False)
 
-    def __get_max_attempts(self, options: RequestOptions = {}) -> int:
+    def get_max_attempts(self, options: RequestOptions = {}) -> int:
         return self.__get_option_value(options, "max_attempts", 3)
 
 

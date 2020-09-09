@@ -37,20 +37,19 @@ class SimpleTest(unittest.TestCase):
         client = self.new_client()
 
         self.assertEqual(client.has_cookie(), False)
-        self.assertEqual(client._Client__get_login_policy(), "when_required")
+        self.assertEqual(client.get_login_policy(), "when_required")
         self.assertEqual(
-            client._Client__get_thread_gatekeeper_page_number(), 99)
-        self.assertEqual(client._Client__get_uses_luwei_cookie_format(),
+            client.get_thread_gatekeeper_page_number(), 99)
+        self.assertEqual(client.get_uses_luwei_cookie_format(),
                          SimpleTest.luwei_cookie_expires)
-        self.assertEqual(client._Client__get_max_attempts(), 3)
+        self.assertEqual(client.get_max_attempts(), 3)
 
         options = {
             "user_cookie": anobbsclient.UserCookie(
                 userhash="foo",
             ),
         }
-        self.assertEqual(client._Client__get_user_cookie(options).userhash,
-                         "foo")
+        self.assertEqual(client.get_user_cookie(options).userhash, "foo")
 
     def test_check_login(self):
         client = self.new_client()
