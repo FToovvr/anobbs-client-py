@@ -39,7 +39,7 @@ class SimpleTest(unittest.TestCase):
         self.assertEqual(client.has_cookie(), False)
         self.assertEqual(client.get_login_policy(), "when_required")
         self.assertEqual(
-            client.get_thread_gatekeeper_page_number(), 99)
+            client.get_thread_gatekeeper_page_number(), 100)
         self.assertEqual(client.get_uses_luwei_cookie_format(),
                          SimpleTest.luwei_cookie_expires)
         self.assertEqual(client.get_max_attempts(), 3)
@@ -65,22 +65,22 @@ class SimpleTest(unittest.TestCase):
             expected_needs_login: bool
 
         for row in [
-            Row("enforce", True, 1, False, True),
             Row("enforce", True, 100, False, True),
-            Row("enforce", False, 1, True, None),
+            Row("enforce", True, 101, False, True),
             Row("enforce", False, 100, True, None),
-            Row("when_has_cookie", True, 1, False, True),
+            Row("enforce", False, 101, True, None),
             Row("when_has_cookie", True, 100, False, True),
-            Row("when_has_cookie", False, 1, False, False),
-            Row("when_has_cookie", False, 100, True, None),
-            Row("when_required", True, 1, False, False),
-            Row("when_required", True, 100, False, True),
-            Row("when_required", False, 1, False, False),
-            Row("when_required", False, 100, True, None),
-            Row("always_no", True, 1, False, False),
-            Row("always_no", True, 100, True, None),
-            Row("always_no", False, 1, False, False),
-            Row("always_no", False, 100, True, None),
+            Row("when_has_cookie", True, 101, False, True),
+            Row("when_has_cookie", False, 100, False, False),
+            Row("when_has_cookie", False, 101, True, None),
+            Row("when_required", True, 100, False, False),
+            Row("when_required", True, 101, False, True),
+            Row("when_required", False, 100, False, False),
+            Row("when_required", False, 101, True, None),
+            Row("always_no", True, 100, False, False),
+            Row("always_no", True, 101, True, None),
+            Row("always_no", False, 100, False, False),
+            Row("always_no", False, 101, True, None),
         ]:
             logging.debug(row)
 
@@ -109,7 +109,7 @@ class SimpleTest(unittest.TestCase):
         client = self.new_client()
 
         self.assertRaises(anobbsclient.NoPermissionException,
-                          client.get_board_page, 4, page=100)
+                          client.get_board_page, 4, page=101)
 
         (qst, _) = client.get_board_page(111, page=1)
 

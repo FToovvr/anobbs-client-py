@@ -229,10 +229,10 @@ class Client:
         return self.__get_option_value(options, "login_policy", "when_required")
 
     def get_thread_gatekeeper_page_number(self, options: RequestOptions = {}) -> int:
-        return self.__get_option_value(options, "thread_gatekeeper_page_number", 99)
+        return self.__get_option_value(options, "thread_gatekeeper_page_number", 100)
 
     def get_board_gatekeeper_page_number(self, options: RequestOptions = {}) -> int:
-        return self.__get_option_value(options, "board_gatekeeper_page_number", 99)
+        return self.__get_option_value(options, "board_gatekeeper_page_number", 100)
 
     def get_uses_luwei_cookie_format(self, options: RequestOptions = {}) -> Union[Literal[False], LuweiCookieFormat]:
         return self.__get_option_value(options, "uses_luwei_cookie_format", False)

@@ -22,7 +22,7 @@ when_has_cookie
     只要设置了用户饼干，就使用该饼干请求服务器。
 
 when_required
-    只有在需要时（如获取串的 99 页之后的页面）才使用设置的饼干，否则会以无饼干状态请求服务器。
+    只有在需要时（如获取串的 100 页之后的页面）才使用设置的饼干，否则会以无饼干状态请求服务器。
 
 always_no
     即使设置了饼干，也会以无饼干状态请求服务器。
@@ -49,10 +49,10 @@ class RequestOptions(TypedDict, total=False):
         饼干登陆的策略。
 
     "board_gatekeeper_page_number" : int
-        版块「卡99」的页数，默认为 ``99``。
+        版块「卡99」的页数，默认为 ``100``。
 
     "thread_gatekeeper_page_number" : int
-        串「卡99」的页数，默认为 ``99``。
+        串「卡99」的页数，默认为 ``100``。
 
         如果操作获取串的页数超过该值，但并无可用饼干，会抛出 :exc:`RequiresLoginException`。
 
