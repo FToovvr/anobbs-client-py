@@ -19,7 +19,7 @@ class Post:
 
     @property
     def id(self) -> int:
-        return self._raw["id"]
+        return int(self._raw["id"])
 
     @property
     def attachment_base(self) -> Optional[str]:
@@ -34,7 +34,7 @@ class Post:
         return self._raw["now"]
 
     @property
-    def user_id(self) -> int:
+    def user_id(self) -> str:
         return self._raw["userid"]
 
     @property
