@@ -79,19 +79,23 @@ class ThreadBody(Post):
     def __init__(self, data: OrderedDict[str, Any]):
         super(ThreadBody, self).__init__(data)
 
-        self.__total_reply_count = self._raw["replyCount"]
+        self.__total_reply_count = int(self._raw["replyCount"])
         # 不 pop 来保持顺序
         self._raw["replyCount"] = None
 
     def raw_copy(self, keeps_reply_count: bool = True, _keeps_replies_slot=False) -> OrderedDict[str, Any]:
         copy = super(ThreadBody, self).raw_copy()
         if keeps_reply_count:
-            copy["replyCount"] = self.__total_reply_count
+            copy["replyCount"] = str(self.__total_reply_count)
         else:
             copy.pop("replyCount")
         if not _keeps_replies_slot:
             copy.pop("replys", None)
         return copy
+
+    @property
+    def total_reply_count(self) -> int:
+        return self.__total_reply_count
 
 
 @dataclass
@@ -126,10 +130,6 @@ class Thread(ThreadBody):
     @replies.setter
     def replies(self, replies: List[Post]):
         self.__replies = replies
-
-    @property
-    def total_reply_count(self) -> int:
-        return int(self._raw["replyCount"])
 
     def to_json(self) -> str:
         data = self.raw_copy()
