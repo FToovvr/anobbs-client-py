@@ -72,7 +72,30 @@ def _none_if(content, none_mark) -> Optional[Any]:
 
 
 @dataclass
-class Thread(Post):
+class ThreadBody(Post):
+
+    __total_reply_count: int
+
+    def __init__(self, data: OrderedDict[str, Any]):
+        super(ThreadBody, self).__init__(data)
+
+        self.__total_reply_count = self._raw["replyCount"]
+        # 不 pop 来保持顺序
+        self._raw["replyCount"] = None
+
+    def raw_copy(self, keeps_reply_count: bool = True, _keeps_replies_slot=False) -> OrderedDict[str, Any]:
+        copy = super(ThreadBody, self).raw_copy()
+        if keeps_reply_count:
+            copy["replyCount"] = self.__total_reply_count
+        else:
+            copy.pop("replyCount")
+        if not _keeps_replies_slot:
+            copy.pop("replys", None)
+        return copy
+
+
+@dataclass
+class Thread(ThreadBody):
 
     __replies: Optional[List[Post]]
 
@@ -86,6 +109,15 @@ class Thread(Post):
             self._raw["replys"] = None
         else:
             self.__replies = None
+
+    def raw_copy(self) -> OrderedDict[str, Any]:
+        copy = super(Thread, self).raw_copy(_keeps_replies_slot=True)
+        copy["replys"] = self.replies
+        return copy
+
+    @property
+    def body(self) -> ThreadBody:
+        return ThreadBody(self._raw)
 
     @property
     def replies(self) -> Optional[List[Post]]:
