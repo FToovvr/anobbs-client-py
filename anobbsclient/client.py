@@ -6,6 +6,7 @@ import logging
 import urllib
 
 import requests
+import requests_toolbelt
 
 from .usercookie import UserCookie
 from .options import RequestOptions, LoginPolicy, LuweiCookieFormat
@@ -249,8 +250,13 @@ def _try_request(fn: Callable[[], Any], description: str, max_attempts: int) -> 
                 logging.warning(
                     f'执行「{description}」失败: {e}. 尝试: {i}/{max_attempts}')
             else:
-                logging.error(
-                    f'无法执行「{description}」: {e}. 已经失败 {max_attempts} 次. 放弃')
+                msg = f'无法执行「{description}」: {e}. 已经失败 {max_attempts} 次. 放弃'
+                if isinstance(e, requests.exceptions.RequestException):
+                    msg += ". dump: " + \
+                        requests_toolbelt.utils.dump.dump_all(
+                            e.response).decode('utf-8')
+                logging.error(msg)
+
                 raise e
         except Exception as e:
             raise e
