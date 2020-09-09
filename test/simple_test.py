@@ -115,6 +115,8 @@ class SimpleTest(unittest.TestCase):
         (qst, _) = client.get_board_page(111, page=1)
 
         self.assertGreater(len(qst), 0)
+        self.assertEqual(qst[-1].body.total_reply_count,
+                         qst[-1].total_reply_count)
 
     def test_get_thread_page(self):
         # TODO: 测试更多字段是否正确处理

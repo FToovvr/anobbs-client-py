@@ -74,19 +74,22 @@ def _none_if(content, none_mark) -> Optional[Any]:
 @dataclass
 class ThreadBody(Post):
 
-    __total_reply_count: int
+    _total_reply_count: int
 
-    def __init__(self, data: OrderedDict[str, Any]):
+    def __init__(self, data: OrderedDict[str, Any], _total_reply_count: Optional[int] = None):
         super(ThreadBody, self).__init__(data)
 
-        self.__total_reply_count = int(self._raw["replyCount"])
+        if _total_reply_count != None:
+            self._total_reply_count = _total_reply_count
+        else:
+            self._total_reply_count = int(self._raw["replyCount"])
         # 不 pop 来保持顺序
         self._raw["replyCount"] = None
 
     def raw_copy(self, keeps_reply_count: bool = True, _keeps_replies_slot=False) -> OrderedDict[str, Any]:
         copy = super(ThreadBody, self).raw_copy()
         if keeps_reply_count:
-            copy["replyCount"] = str(self.__total_reply_count)
+            copy["replyCount"] = str(self._total_reply_count)
         else:
             copy.pop("replyCount")
         if not _keeps_replies_slot:
@@ -95,24 +98,24 @@ class ThreadBody(Post):
 
     @property
     def total_reply_count(self) -> int:
-        return self.__total_reply_count
+        return self._total_reply_count
 
 
 @dataclass
 class Thread(ThreadBody):
 
-    __replies: Optional[List[Post]]
+    _replies: Optional[List[Post]]
 
     def __init__(self, data: OrderedDict[str, Any]):
         super(Thread, self).__init__(data)
 
         if "replys" in self._raw:
-            self.__replies = map(lambda post: Post(post),
-                                 self._raw["replys"])
+            self._replies = map(lambda post: Post(post),
+                                self._raw["replys"])
             # 不 pop 来保持顺序
             self._raw["replys"] = None
         else:
-            self.__replies = None
+            self._replies = None
 
     def raw_copy(self) -> OrderedDict[str, Any]:
         copy = super(Thread, self).raw_copy(_keeps_replies_slot=True)
@@ -121,20 +124,20 @@ class Thread(ThreadBody):
 
     @property
     def body(self) -> ThreadBody:
-        return ThreadBody(self._raw)
+        return ThreadBody(self._raw, _total_reply_count=self._total_reply_count)
 
     @property
     def replies(self) -> Optional[List[Post]]:
-        return self.__replies
+        return self._replies
 
     @replies.setter
     def replies(self, replies: List[Post]):
-        self.__replies = replies
+        self._replies = replies
 
     def to_json(self) -> str:
         data = self.raw_copy()
-        if self.__replies != None:
-            data["replys"] = map(lambda post: post.body, self.__replies)
+        if self._replies != None:
+            data["replys"] = map(lambda post: post.body, self._replies)
         else:
             data.pop("replys", None)
 
