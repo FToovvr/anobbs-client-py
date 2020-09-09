@@ -146,7 +146,8 @@ class Client:
 
         login_policy = self.__get_login_policy(options)
         has_cookie = self.has_cookie(options)
-        gate_keeper_page_number = self.__get_gatekeeper_page_number(options)
+        gate_keeper_page_number = self.__get_thread_gatekeeper_page_number(
+            options)
 
         if login_policy == "enforce":
             return True
@@ -175,10 +176,10 @@ class Client:
             or self.default_request_options.get("login_policy", "when_required")
         )
 
-    def __get_gatekeeper_page_number(self, options: RequestOptions = {}) -> int:
+    def __get_thread_gatekeeper_page_number(self, options: RequestOptions = {}) -> int:
         return (
-            options.get("gatekeeper_page_number", None)
-            or self.default_request_options.get("gatekeeper_page_number", 99)
+            options.get("thread_gatekeeper_page_number", None)
+            or self.default_request_options.get("thread_gatekeeper_page_number", 99)
         )
 
     def __get_uses_luwei_cookie_format(self, options: RequestOptions = {}) -> Union[Literal[False], LuweiCookieFormat]:

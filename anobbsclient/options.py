@@ -48,8 +48,8 @@ class RequestOptions(TypedDict, total=False):
     "login_policy" : LoginPolicy
         饼干登陆的策略。
 
-    "gatekeeper_page_number" : int
-        「卡99」的页数，默认为 ``99``。
+    "thread_gatekeeper_page_number" : int
+        串「卡99」的页数，默认为 ``99``。
 
         如果操作获取串的页数超过该值，但并无可用饼干，会抛出 :exc:`RequiresLoginException`。
 
@@ -68,7 +68,7 @@ class RequestOptions(TypedDict, total=False):
 
     login_policy: LoginPolicy
 
-    gatekeeper_page_number: int
+    thread_gatekeeper_page_number: int
 
     uses_luwei_cookie_format: Union[Literal[False], LuweiCookieFormat]
 
