@@ -97,6 +97,7 @@ class Client:
         url = f"https://{self.host}/Api/showf?" + \
             urllib.parse.urlencode(queries)
         resp = self.__session.get(url)
+        resp.raise_for_status()
 
         threads = resp.json(object_pairs_hook=OrderedDict)
         return list(map(lambda thread: Thread(thread), threads)), _calculate_bandwidth_usage(resp)
@@ -149,6 +150,7 @@ class Client:
         url = f"https://{self.host}/Api/thread/id/{id}?" + \
             urllib.parse.urlencode(queries)
         resp = self.__session.get(url)
+        resp.raise_for_status()
 
         return Thread(resp.json(object_pairs_hook=OrderedDict)), _calculate_bandwidth_usage(resp)
 
