@@ -98,7 +98,7 @@ class SimpleTest(unittest.TestCase):
                 )
                 self.assertRaises(anobbsclient.RequiresLoginException, fn)
             else:
-                needs_login = client.page_requires_login(
+                needs_login = client.thread_page_requires_login(
                     page=row.page_number,
                     options=options,
                 )

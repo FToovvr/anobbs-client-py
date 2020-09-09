@@ -69,7 +69,8 @@ class Client:
             如果为真，将会过滤掉与分析无关的内容，以方便分析。
         """
 
-        with_login = self.page_requires_login(page=page, options=options)
+        with_login = self.thread_page_requires_login(
+            page=page, options=options)
         if with_login and not self.has_cookie(options):
             raise RequiresLoginException()
 
@@ -136,7 +137,7 @@ class Client:
             "Accept-Encoding": "gzip, deflate, br",
         })
 
-    def page_requires_login(self, page: int, options: RequestOptions = {}) -> bool:
+    def thread_page_requires_login(self, page: int, options: RequestOptions = {}) -> bool:
         """
         Returns
         -------
