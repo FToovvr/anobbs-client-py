@@ -74,7 +74,7 @@ class Client:
         if with_login and not self.has_cookie(options):
             raise RequiresLoginException()
 
-        logging.debug(f"将获取版块：{id} 第 {page} 页，已登陆：{with_login}")
+        logging.debug(f"将获取版块：{board_id} 第 {page} 页，已登陆：{with_login}")
 
         def fn(): return self.__get_board_page(
             board_id, page=page, options=options, with_login=with_login)
