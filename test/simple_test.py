@@ -72,23 +72,25 @@ class SimpleTest(unittest.TestCase):
             expects_exception: bool
             expected_needs_login: bool
 
+        gk_pn = client.get_thread_gatekeeper_page_number()
+
         for row in [
-            Row("enforce", True, 100, False, True),
-            Row("enforce", True, 101, False, True),
-            Row("enforce", False, 100, True, None),
-            Row("enforce", False, 101, True, None),
-            Row("when_has_cookie", True, 100, False, True),
-            Row("when_has_cookie", True, 101, False, True),
-            Row("when_has_cookie", False, 100, False, False),
-            Row("when_has_cookie", False, 101, True, None),
-            Row("when_required", True, 100, False, False),
-            Row("when_required", True, 101, False, True),
-            Row("when_required", False, 100, False, False),
-            Row("when_required", False, 101, True, None),
-            Row("always_no", True, 100, False, False),
-            Row("always_no", True, 101, True, None),
-            Row("always_no", False, 100, False, False),
-            Row("always_no", False, 101, True, None),
+            Row("enforce", True, gk_pn, False, True),
+            Row("enforce", True, gk_pn+1, False, True),
+            Row("enforce", False, gk_pn, True, None),
+            Row("enforce", False, gk_pn+1, True, None),
+            Row("when_has_cookie", True, gk_pn, False, True),
+            Row("when_has_cookie", True, gk_pn+1, False, True),
+            Row("when_has_cookie", False, gk_pn, False, False),
+            Row("when_has_cookie", False, gk_pn+1, True, None),
+            Row("when_required", True, gk_pn, False, False),
+            Row("when_required", True, gk_pn+1, False, True),
+            Row("when_required", False, gk_pn, False, False),
+            Row("when_required", False, gk_pn+1, True, None),
+            Row("always_no", True, gk_pn, False, False),
+            Row("always_no", True, gk_pn+1, True, None),
+            Row("always_no", False, gk_pn, False, False),
+            Row("always_no", False, gk_pn+1, True, None),
         ]:
             logging.debug(row)
 
