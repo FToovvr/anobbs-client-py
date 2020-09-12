@@ -12,7 +12,7 @@ from .usercookie import UserCookie
 from .options import RequestOptions, LoginPolicy, LuweiCookieFormat
 from .objects import Board, Thread
 from .utils import current_timestamp_ms_offset_to_utc8
-from .exceptions import ShouldNotReachException, RequiresLoginException, NoPermissionException
+from .exceptions import ShouldNotReachException, RequiresLoginException, NoPermissionException, ResourceNotExistsException
 
 
 class BandwidthUsage(NamedTuple):
@@ -152,6 +152,8 @@ class Client:
             urllib.parse.urlencode(queries)
         resp = self.__session.get(url)
         resp.raise_for_status()
+        if resp.json() == '该主题不存在':
+            raise ResourceNotExistsException()
 
         return Thread(resp.json(object_pairs_hook=OrderedDict)), _calculate_bandwidth_usage(resp)
 
@@ -243,22 +245,36 @@ class Client:
 
 def _try_request(fn: Callable[[], Any], description: str, max_attempts: int) -> Any:
     for i in range(1, max_attempts + 1):
+        can_retry = False
         try:
             return fn()
-        except (requests.exceptions.RequestException, ValueError) as e:
-            if i < max_attempts:
-                logging.warning(
-                    f'执行「{description}」失败: {e}. 尝试: {i}/{max_attempts}')
+        except (requests.exceptions.ConnectionError, requests.exceptions.Timeout) as _e:
+            # 对连接、超时相关的问题重试
+            can_retry = True
+            e = _e
+        except requests.exceptions.HTTPError as _e:
+            if _e.response != None and _e.response.status_code == 404:
+                e = ResourceNotExistsException()
             else:
-                msg = f'无法执行「{description}」: {e}. 已经失败 {max_attempts} 次. 放弃'
-                if isinstance(e, requests.exceptions.RequestException):
-                    msg += ". dump: " + \
-                        requests_toolbelt.utils.dump.dump_all(
-                            e.response).decode('utf-8')
-                logging.error(msg)
+                e = _e
+        except Exception as _e:
+            e = _e
 
-                raise e
-        except Exception as e:
+        if can_retry and i < max_attempts:
+            logging.warning(
+                f'执行「{description}」失败: {e}. 尝试: {i}/{max_attempts}')
+        else:
+            msg = f'无法执行「{description}」: {e}'
+            if can_retry:
+                msg += '. 已经失败 {max_attempts} 次, 超过最大尝试次数, 放弃'
+            else:
+                msg += '. 将不重试, 放弃'
+            if isinstance(e, requests.exceptions.RequestException):
+                msg += ". dump: " + \
+                    requests_toolbelt.utils.dump.dump_all(
+                        e.response).decode('utf-8')
+            logging.error(msg)
+
             raise e
 
 

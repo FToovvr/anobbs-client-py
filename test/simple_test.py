@@ -155,6 +155,16 @@ class SimpleTest(unittest.TestCase):
 
         self.assertGreater(int(luwei_thread.replies[0].id), 10000000)
 
+    def test_get_404_thread_page(self):
+
+        client = self.new_client()
+
+        def get_404_thread():
+            client.get_thread_page(28804321, page=1, for_analysis=True)
+
+        self.assertRaises(
+            anobbsclient.ResourceNotExistsException, get_404_thread)
+
     def test_thread_page_reverse_walker(self):
 
         client = self.new_client()
@@ -238,6 +248,8 @@ class SimpleTest(unittest.TestCase):
         self.assertRaises(anobbsclient.GatekeptException, case_gatekept)
 
     def test_thread_page_reverse_walker_with_login(self):
+        if SimpleTest.user_hash == None:
+            self.skipTest(reason="需要登录")
 
         client = self.new_client()
 
