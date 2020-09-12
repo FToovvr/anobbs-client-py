@@ -6,7 +6,12 @@ import anobbsclient
 
 
 @dataclass(frozen=True)
-class LowerBoundPageEndCondition:
+class EndCondition:
+    pass
+
+
+@dataclass(frozen=True)
+class LowerBoundPageEndCondition(EndCondition):
     """
     Fields
     ------
@@ -29,9 +34,6 @@ class LowerBoundPageEndCondition:
             assert(self.page_seen_max_post_id != None)
         else:
             assert(self.page_seen_max_post_id == None)
-
-
-EndCondition = Union[LowerBoundPageEndCondition]
 
 
 @dataclass
