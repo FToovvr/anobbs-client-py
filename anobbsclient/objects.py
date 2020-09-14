@@ -5,11 +5,11 @@ import json
 import re
 from datetime import datetime
 
-import pytz
+from dateutil import tz
 
 
 datetime_re = re.compile(r"^(.*?)\(.\)(.*?)$")
-tz = pytz.timezone("Asia/Shanghai")
+local_tz = tz.gettz("Asia/Shanghai")
 
 
 @dataclass
@@ -45,7 +45,7 @@ class Post:
     def created_at(self) -> datetime:
         g = datetime_re.match(self.created_at_raw_text)
         dt = datetime.strptime(f"{g[1]} {g[2]}", "%Y-%m-%d %H:%M:%S")
-        return tz.localize(dt)
+        return dt.replace(tzinfo=local_tz)
 
     @property
     def user_id(self) -> str:
