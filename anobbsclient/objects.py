@@ -2,6 +2,14 @@ from typing import OrderedDict, Any, List, Tuple, Optional
 from dataclasses import dataclass
 
 import json
+import re
+from datetime import datetime
+
+import pytz
+
+
+datetime_re = re.compile(r"^(.*?)\(.\)(.*?)$")
+tz = pytz.timezone("Asia/Shanghai")
 
 
 @dataclass
@@ -32,6 +40,12 @@ class Post:
     @property
     def created_at_raw_text(self) -> str:
         return self._raw["now"]
+
+    @property
+    def created_at(self) -> datetime:
+        g = datetime_re.match(self.created_at_raw_text)
+        dt = datetime.strptime(f"{g[1]} {g[2]}", "%Y-%m-%d %H:%M:%S")
+        return tz.localize(dt)
 
     @property
     def user_id(self) -> str:

@@ -139,6 +139,13 @@ class SimpleTest(unittest.TestCase):
         self.assertEqual(luwei_thread.content, "这是芦苇")
         self.assertNotEqual(luwei_thread.attachment_base, None)
 
+        dt = luwei_thread.created_at
+        self.assertEqual(dt.utcoffset().total_seconds() / 60 / 60, 8)
+        dt_text = (dt.strftime("%Y-%m-%d") +
+                   "(" + "一二三四五六日"[dt.weekday()]+")" +
+                   dt.strftime("%H:%M:%S"))
+        self.assertEqual(luwei_thread.created_at_raw_text, dt_text)
+
     def test_get_thread_page_with_login(self):
         if SimpleTest.user_hash == None:
             self.skipTest(reason="需要登录")
