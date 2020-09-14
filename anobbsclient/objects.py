@@ -119,18 +119,14 @@ class ThreadBody(Post):
 class Thread(ThreadBody):
     # TODO: 改名为 ``ThreadPage```
 
-    _replies: Optional[List[Post]]
+    _replies: List[Post]
 
     def __init__(self, data: OrderedDict[str, Any]):
         super(Thread, self).__init__(data)
 
-        if "replys" in self._raw:
-            self._replies = map(lambda post: Post(post),
-                                self._raw["replys"])
-            # 不 pop 来保持顺序
-            self._raw["replys"] = None
-        else:
-            self._replies = None
+        self._replies = list(map(lambda post: Post(post), self._raw["replys"]))
+        # 不 pop 来保持顺序
+        self._raw["replys"] = None
 
     def raw_copy(self) -> OrderedDict[str, Any]:
         copy = super(Thread, self).raw_copy(_keeps_replies_slot=True)
@@ -142,7 +138,7 @@ class Thread(ThreadBody):
         return ThreadBody(self._raw, _total_reply_count=self._total_reply_count)
 
     @property
-    def replies(self) -> Optional[List[Post]]:
+    def replies(self) -> List[Post]:
         return self._replies
 
     @replies.setter
