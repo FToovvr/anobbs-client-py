@@ -126,6 +126,7 @@ class SimpleTest(unittest.TestCase):
         self.assertGreater(len(qst), 0)
         self.assertEqual(qst[-1].body.total_reply_count,
                          qst[-1].total_reply_count)
+        self.assertIsNotNone(qst[-1].last_modified_time)
 
     def test_get_thread_page(self):
         # TODO: 测试更多字段是否正确处理

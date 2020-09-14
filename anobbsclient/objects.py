@@ -156,11 +156,27 @@ class Thread(ThreadBody):
 
 
 @dataclass
-class TimelineThread(Thread):
+class BoardThread(Thread):
+
+    def __init__(self, data: OrderedDict[str, Any]):
+        super(BoardThread, self).__init__(data)
+
+    @property
+    def last_modified_time(self) -> datetime:
+        if len(self.replies) == 0:
+            return self.created_at
+        return self.replies[-1].created_at
+
+
+@dataclass
+class TimelineThread(BoardThread):
+
+    def __init__(self, data: OrderedDict[str, Any]):
+        super(TimelineThread, self).__init__(data)
 
     @property
     def board_id(self) -> int:
         return int(self._raw["fid"])
 
 
-Board = List[Thread]
+Board = List[BoardThread]

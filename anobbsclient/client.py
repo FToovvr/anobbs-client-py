@@ -10,7 +10,7 @@ import requests_toolbelt
 
 from .usercookie import UserCookie
 from .options import RequestOptions, LoginPolicy, LuweiCookieFormat
-from .objects import Board, Thread
+from .objects import Board, Thread, BoardThread
 from .utils import current_timestamp_ms_offset_to_utc8
 from .exceptions import ShouldNotReachException, RequiresLoginException, NoPermissionException, ResourceNotExistsException
 
@@ -101,7 +101,7 @@ class Client:
         resp.raise_for_status()
 
         threads = resp.json(object_pairs_hook=OrderedDict)
-        return list(map(lambda thread: Thread(thread), threads)), _calculate_bandwidth_usage(resp)
+        return list(map(lambda thread: BoardThread(thread), threads)), _calculate_bandwidth_usage(resp)
 
     def get_thread_page(self, id: int, page: int, options: RequestOptions = {}, for_analysis: bool = False) -> Tuple[Thread, BandwidthUsage]:
         """
