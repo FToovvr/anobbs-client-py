@@ -4,6 +4,9 @@ from dataclasses import dataclass, field
 import time
 import logging
 import urllib
+import urllib3
+import json
+import io
 
 import requests
 import requests_toolbelt
@@ -97,11 +100,9 @@ class Client:
         queries["__t"] = current_timestamp_ms_offset_to_utc8()
         url = f"https://{self.host}/Api/showf?" + \
             urllib.parse.urlencode(queries)
-        resp = self.__session.get(url)
-        resp.raise_for_status()
-
-        threads = resp.json(object_pairs_hook=OrderedDict)
-        return list(map(lambda thread: BoardThread(thread), threads)), _calculate_bandwidth_usage(resp)
+        # resp = self.__session.get(url)
+        threads, bandwidth_usage = _get_json(self.__session, url)
+        return list(map(lambda thread: BoardThread(thread), threads)), bandwidth_usage
 
     def get_thread_page(self, id: int, page: int, options: RequestOptions = {}, for_analysis: bool = False) -> Tuple[Thread, BandwidthUsage]:
         """
@@ -150,12 +151,12 @@ class Client:
         queries["__t"] = current_timestamp_ms_offset_to_utc8()
         url = f"https://{self.host}/Api/thread/id/{id}?" + \
             urllib.parse.urlencode(queries)
-        resp = self.__session.get(url)
-        resp.raise_for_status()
-        if resp.json() == '该主题不存在':
+        # resp = self.__session.get(url)
+        thread_page_json, bandwidth_usage = _get_json(self.__session, url)
+        if thread_page_json == '该主题不存在':
             raise ResourceNotExistsException()
 
-        return Thread(resp.json(object_pairs_hook=OrderedDict)), _calculate_bandwidth_usage(resp)
+        return Thread(thread_page_json), bandwidth_usage
 
     def __setup_headers(self, options: RequestOptions, with_login: bool = False):
 
@@ -277,8 +278,35 @@ def _try_request(fn: Callable[[], Any], description: str, max_attempts: int) -> 
 
             raise e
 
+def _get_json(session: requests.Session, url: str):
+    with session.get(url, stream=True) as resp:
+        resp.raise_for_status()
+        raw_content = resp.raw.read()
+        
+    bandwidth_usage = BandwidthUsage(
+        _calculate_request_size(resp),
+        _calculate_response_size(resp, raw_content),
+    )
 
-def _calculate_bandwidth_usage(resp: requests.Response) -> BandwidthUsage:
+    content_encoding = resp.headers.get('content-encoding', None)
+    if content_encoding != None:
+        headers = {
+            'Content-Encoding': content_encoding
+        },
+    else:
+        headers = {}
+
+    with io.BytesIO(raw_content) as f:
+        fake_resp = urllib3.response.HTTPResponse(
+            body = f,
+            headers = headers,
+        )
+        decoded_content = fake_resp.data
+        obj =  json.loads(decoded_content, object_pairs_hook=OrderedDict)
+
+    return obj, bandwidth_usage
+
+def _calculate_request_size(resp: requests.Response) -> BandwidthUsage:
     """
     …
 
@@ -291,14 +319,18 @@ def _calculate_bandwidth_usage(resp: requests.Response) -> BandwidthUsage:
         __calculate_header_size(resp.request.headers) + \
         int(resp.request.headers.get("content-length", 0)
             )  # 没有 body 就不会生成 Content-Length?
+    
+    return request_size
+
+def _calculate_response_size(resp: requests.Response, raw_content):
 
     response_line_size = len(resp.reason) + 15
     response_size = response_line_size + \
         __calculate_header_size(resp.headers) + \
-        int(resp.headers["content-length"])
+        len(raw_content)
 
-    return BandwidthUsage(request_size, response_size)
-
+    return response_size    
 
 def __calculate_header_size(headers) -> int:
     return sum(len(key) + len(value) + 4 for key, value in headers.items()) + 2
+
