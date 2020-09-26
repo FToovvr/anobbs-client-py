@@ -18,7 +18,7 @@ client = Client(
 
 luwei_thread = client.get_thread_page(49607, page=1)
 
-print(luwei_thread.body["content"])
+print(luwei_thread.content)
 #=> 这是芦苇
 ```
 
