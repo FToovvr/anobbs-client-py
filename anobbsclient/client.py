@@ -288,13 +288,9 @@ def _get_json(session: requests.Session, url: str):
         _calculate_response_size(resp, raw_content),
     )
 
-    content_encoding = resp.headers.get('content-encoding', None)
-    if content_encoding != None:
-        headers = {
-            'Content-Encoding': content_encoding
-        },
-    else:
-        headers = {}
+    headers = {
+        'Content-Encoding': resp.headers.get('content-encoding', '')
+    }
 
     with io.BytesIO(raw_content) as f:
         fake_resp = urllib3.response.HTTPResponse(
