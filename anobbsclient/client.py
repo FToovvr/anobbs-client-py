@@ -278,11 +278,12 @@ def _try_request(fn: Callable[[], Any], description: str, max_attempts: int) -> 
 
             raise e
 
+
 def _get_json(session: requests.Session, url: str):
     with session.get(url, stream=True) as resp:
         resp.raise_for_status()
         raw_content = resp.raw.read()
-        
+
     bandwidth_usage = BandwidthUsage(
         _calculate_request_size(resp),
         _calculate_response_size(resp, raw_content),
@@ -294,13 +295,14 @@ def _get_json(session: requests.Session, url: str):
 
     with io.BytesIO(raw_content) as f:
         fake_resp = urllib3.response.HTTPResponse(
-            body = f,
-            headers = headers,
+            body=f,
+            headers=headers,
         )
         decoded_content = fake_resp.data
-        obj =  json.loads(decoded_content, object_pairs_hook=OrderedDict)
+        obj = json.loads(decoded_content, object_pairs_hook=OrderedDict)
 
     return obj, bandwidth_usage
+
 
 def _calculate_request_size(resp: requests.Response) -> BandwidthUsage:
     """
@@ -315,8 +317,9 @@ def _calculate_request_size(resp: requests.Response) -> BandwidthUsage:
         __calculate_header_size(resp.request.headers) + \
         int(resp.request.headers.get("content-length", 0)
             )  # 没有 body 就不会生成 Content-Length?
-    
+
     return request_size
+
 
 def _calculate_response_size(resp: requests.Response, raw_content):
 
@@ -325,8 +328,8 @@ def _calculate_response_size(resp: requests.Response, raw_content):
         __calculate_header_size(resp.headers) + \
         len(raw_content)
 
-    return response_size    
+    return response_size
+
 
 def __calculate_header_size(headers) -> int:
     return sum(len(key) + len(value) + 4 for key, value in headers.items()) + 2
-
