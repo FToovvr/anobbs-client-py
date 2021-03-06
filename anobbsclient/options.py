@@ -35,7 +35,7 @@ class LuweiCookieFormat(TypedDict, total=False):
 
 class RequestOptions(TypedDict, total=False):
     """
-    客户端请求选项。
+    客户端相关的请求设置。
     """
 
     user_cookie: UserCookie
@@ -66,4 +66,4 @@ class RequestOptions(TypedDict, total=False):
     """
 
     max_attempts: int
-    """最多由于网络连接问题进行尝试的次数，默认为 ``3``。"""
+    """最多由于网络连接问题进行尝试的次数，默认为 ``5``。"""

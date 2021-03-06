@@ -50,7 +50,7 @@ class SimpleTest(unittest.TestCase):
             client.get_thread_gatekeeper_page_number(), 100)
         self.assertEqual(client.get_uses_luwei_cookie_format(),
                          SimpleTest.luwei_cookie_expires)
-        self.assertEqual(client.get_max_attempts(), 3)
+        self.assertEqual(client.get_max_attempts(), 5)
 
         options = {
             "user_cookie": anobbsclient.UserCookie(

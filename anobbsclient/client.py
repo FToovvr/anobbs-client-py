@@ -11,6 +11,8 @@ import io
 import requests
 import requests_toolbelt
 
+from .baseclient import BaseClient
+from .requestutils import BandwidthUsage, try_request, get_json
 from .usercookie import UserCookie
 from .options import RequestOptions, LoginPolicy, LuweiCookieFormat
 from .objects import Board, Thread, BoardThread
@@ -18,35 +20,8 @@ from .utils import current_timestamp_ms_offset_to_utc8
 from .exceptions import ShouldNotReachException, RequiresLoginException, NoPermissionException, ResourceNotExistsException
 
 
-class BandwidthUsage(NamedTuple):
-    """
-    用于封装与客户端操作产生的流量有关的信息。
-    """
-    uploaded: int
-    """上传字节数"""
-    downloaded: int
-    """下载字节数"""
-
-
 @dataclass
-class Client:
-
-    user_agent: str
-    """发送请求时要使用的 User Agent。"""
-
-    host: str
-    """要请求的 API 服务器的主机名。"""
-
-    appid: Optional[str] = None
-    """appid。"""
-
-    default_request_options: RequestOptions = field(default_factory=dict)
-    """发送请求时的默认请求选项。"""
-
-    __session: requests.Session = field(
-        init=False,
-        default_factory=requests.Session,
-    )
+class Client(BaseClient):
 
     def get_board_page(self, board_id: int, page: int, options: RequestOptions = {}) -> Tuple[Board, BandwidthUsage]:
         """
@@ -75,14 +50,14 @@ class Client:
         def fn(): return self.__get_board_page(
             board_id, page=page, options=options, with_login=with_login)
 
-        (board_page, bandwidth_usage) = _try_request(
+        (board_page, bandwidth_usage) = try_request(
             fn, f"获取版块 {id} 第 {page} 页", self.get_max_attempts(options))
 
         return board_page, bandwidth_usage
 
     def __get_board_page(self, board_id: int, page: int, options: RequestOptions = {}, with_login: bool = False) -> Tuple[Board, BandwidthUsage]:
 
-        self.__setup_headers(options=options, with_login=with_login)
+        session = self._make_session(options=options, with_login=with_login)
 
         queries = OrderedDict()
         queries["id"] = board_id
@@ -92,8 +67,7 @@ class Client:
         queries["__t"] = current_timestamp_ms_offset_to_utc8()
         url = f"https://{self.host}/Api/showf?" + \
             urllib.parse.urlencode(queries)
-        # resp = self.__session.get(url)
-        threads, bandwidth_usage = _get_json(self.__session, url)
+        threads, bandwidth_usage = get_json(session, url)
         return list(map(lambda thread: BoardThread(thread), threads)), bandwidth_usage
 
     def get_thread_page(self, id: int, page: int, options: RequestOptions = {}, for_analysis: bool = False) -> Tuple[Thread, BandwidthUsage]:
@@ -122,7 +96,7 @@ class Client:
         def fn(): return self.__get_thread_page(
             id, page=page, options=options, with_login=with_login)
 
-        (thread_page, bandwidth_usage) = _try_request(
+        (thread_page, bandwidth_usage) = try_request(
             fn, f"获取串 {id} 第 {page} 页", self.get_max_attempts(options))
 
         if for_analysis:
@@ -133,7 +107,7 @@ class Client:
 
     def __get_thread_page(self, id: int, page: int, options: RequestOptions, with_login: bool = False) -> Tuple[Thread, BandwidthUsage]:
 
-        self.__setup_headers(options=options, with_login=with_login)
+        session = self._make_session(options=options, with_login=with_login)
 
         queries = OrderedDict()
         queries["page"] = page
@@ -142,46 +116,11 @@ class Client:
         queries["__t"] = current_timestamp_ms_offset_to_utc8()
         url = f"https://{self.host}/Api/thread/id/{id}?" + \
             urllib.parse.urlencode(queries)
-        # resp = self.__session.get(url)
-        thread_page_json, bandwidth_usage = _get_json(self.__session, url)
+        thread_page_json, bandwidth_usage = get_json(session, url)
         if thread_page_json == '该主题不存在':
             raise ResourceNotExistsException()
 
         return Thread(thread_page_json), bandwidth_usage
-
-    def __setup_headers(self, options: RequestOptions, with_login: bool = False):
-
-        if with_login:
-            user_cookie = self.get_user_cookie(options)
-            assert(user_cookie != None)
-            cookie = requests.cookies.create_cookie(
-                name="userhash", value=user_cookie.userhash, domain=self.host,
-            )
-            self.__session.cookies.set_cookie(cookie)
-        else:
-            requests.cookies.remove_cookie_by_name(
-                self.__session.cookies, "userhash", domain=self.host)
-
-        luwei_cookie_format = self.get_uses_luwei_cookie_format(options)
-        if isinstance(luwei_cookie_format, dict):
-            # 芦苇岛搞错了？
-            for (k, v) in {
-                "expires": luwei_cookie_format["expires"],
-                "domains": self.host,
-                "path": "/",
-            }.items():
-                if k not in self.__session.cookies.keys():
-                    cookie = requests.cookies.create_cookie(
-                        name=k, value=v, domain=self.host,
-                    )
-                    self.__session.cookies.set_cookie(cookie)
-
-        self.__session.headers.update({
-            "Accept": "application/json",
-            "User-Agent": self.user_agent,
-            "Accept-Language": "en-us",
-            "Accept-Encoding": "gzip, deflate, br",
-        })
 
     def thread_page_requires_login(self, page: int, options: RequestOptions = {}) -> bool:
         """
@@ -205,122 +144,8 @@ class Client:
 
         raise ShouldNotReachException()
 
-    def has_cookie(self, options: RequestOptions = {}) -> bool:
-        return self.get_user_cookie(options) != None
-
-    def __get_option_value(self, external_options: RequestOptions, key: str, default: Any = None) -> Any:
-        return (
-            external_options.get(key, None)
-            or self.default_request_options.get(key, default)
-        )
-
-    def get_user_cookie(self, options: RequestOptions = {}) -> UserCookie:
-        if self.get_login_policy(options) == "always_no":
-            return None
-        return self.__get_option_value(options, "user_cookie")
-
-    def get_login_policy(self, options: RequestOptions = {}) -> LoginPolicy:
-        return self.__get_option_value(options, "login_policy", "when_required")
-
     def get_thread_gatekeeper_page_number(self, options: RequestOptions = {}) -> int:
-        return self.__get_option_value(options, "thread_gatekeeper_page_number", 100)
+        return self._get_option_value(options, "thread_gatekeeper_page_number", 100)
 
     def get_board_gatekeeper_page_number(self, options: RequestOptions = {}) -> int:
-        return self.__get_option_value(options, "board_gatekeeper_page_number", 100)
-
-    def get_uses_luwei_cookie_format(self, options: RequestOptions = {}) -> Union[Literal[False], LuweiCookieFormat]:
-        return self.__get_option_value(options, "uses_luwei_cookie_format", False)
-
-    def get_max_attempts(self, options: RequestOptions = {}) -> int:
-        return self.__get_option_value(options, "max_attempts", 3)
-
-
-def _try_request(fn: Callable[[], Any], description: str, max_attempts: int) -> Any:
-    for i in range(1, max_attempts + 1):
-        can_retry = False
-        try:
-            return fn()
-        except (requests.exceptions.ConnectionError, requests.exceptions.Timeout) as _e:
-            # 对连接、超时相关的问题重试
-            can_retry = True
-            e = _e
-        except requests.exceptions.HTTPError as _e:
-            if _e.response != None and _e.response.status_code == 404:
-                e = ResourceNotExistsException()
-            else:
-                e = _e
-        except Exception as _e:
-            e = _e
-
-        if can_retry and i < max_attempts:
-            logging.warning(
-                f'执行「{description}」失败: {e}. 尝试: {i}/{max_attempts}')
-        else:
-            msg = f'无法执行「{description}」: {e}'
-            if can_retry:
-                msg += '. 已经失败 {max_attempts} 次, 超过最大尝试次数, 放弃'
-            else:
-                msg += '. 将不重试, 放弃'
-            if isinstance(e, requests.exceptions.RequestException):
-                msg += ". dump: " + \
-                    requests_toolbelt.utils.dump.dump_all(
-                        e.response).decode('utf-8')
-            logging.error(msg)
-
-            raise e
-
-
-def _get_json(session: requests.Session, url: str):
-    with session.get(url, stream=True) as resp:
-        resp.raise_for_status()
-        raw_content = resp.raw.read()
-
-    bandwidth_usage = BandwidthUsage(
-        _calculate_request_size(resp),
-        _calculate_response_size(resp, raw_content),
-    )
-
-    headers = {
-        'Content-Encoding': resp.headers.get('content-encoding', '')
-    }
-
-    with io.BytesIO(raw_content) as f:
-        fake_resp = urllib3.response.HTTPResponse(
-            body=f,
-            headers=headers,
-        )
-        decoded_content = fake_resp.data
-        obj = json.loads(decoded_content, object_pairs_hook=OrderedDict)
-
-    return obj, bandwidth_usage
-
-
-def _calculate_request_size(resp: requests.Response) -> BandwidthUsage:
-    """
-    …
-
-    See: https://stackoverflow.com/a/33217154
-    """
-
-    request_line_size = len(resp.request.method) + \
-        len(resp.request.path_url) + 12
-    request_size = request_line_size + \
-        __calculate_header_size(resp.request.headers) + \
-        int(resp.request.headers.get("content-length", 0)
-            )  # 没有 body 就不会生成 Content-Length?
-
-    return request_size
-
-
-def _calculate_response_size(resp: requests.Response, raw_content):
-
-    response_line_size = len(resp.reason) + 15
-    response_size = response_line_size + \
-        __calculate_header_size(resp.headers) + \
-        len(raw_content)
-
-    return response_size
-
-
-def __calculate_header_size(headers) -> int:
-    return sum(len(key) + len(value) + 4 for key, value in headers.items()) + 2
+        return self._get_option_value(options, "board_gatekeeper_page_number", 100)
