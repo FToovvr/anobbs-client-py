@@ -9,7 +9,7 @@ LoginPolicy = Union[
     Literal["always_no"],
 ]
 """
-是否向服务端告知登陆的策略。
+是否向服务端告知登录的策略。
 
 Cases
 -----
@@ -46,7 +46,7 @@ class RequestOptions(TypedDict, total=False):
     """
 
     login_policy: LoginPolicy
-    """饼干登陆的策略。"""
+    """饼干登录的策略。"""
 
     board_gatekeeper_page_number: int
     """版块「卡99」的页数，默认为 ``100``。"""

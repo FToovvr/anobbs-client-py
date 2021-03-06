@@ -71,11 +71,11 @@ class BaseClient:
         options : RequestOptions
             请求设置。
         needs_login : bool
-            是否需要登陆。
+            是否需要登录。
         """
 
         if needs_login:
-            # 若需要登陆，配置 cookies
+            # 若需要登录，配置 cookies
 
             user_cookie = self.get_user_cookie(options)
             if user_cookie is None:
@@ -151,7 +151,7 @@ class BaseClient:
         return self.get_user_cookie(options) != None
 
     def get_login_policy(self, options: RequestOptions = {}) -> LoginPolicy:
-        """获取登陆策略，见 :class:`LoginPolicy`。"""
+        """获取登录策略，见 :class:`LoginPolicy`。"""
         return self._get_option_value(options, "login_policy", "when_required")
 
     def get_uses_luwei_cookie_format(self, options: RequestOptions = {}) -> Union[Literal[False], LuweiCookieFormat]:

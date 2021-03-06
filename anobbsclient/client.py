@@ -22,6 +22,9 @@ from .exceptions import ShouldNotReachException, RequiresLoginException, NoPermi
 
 @dataclass
 class Client(BaseClient):
+    """
+        实现各类基础操作的客户端类。
+    """
 
     def get_board_page(self, board_id: int, page: int, options: RequestOptions = {}) -> Tuple[Board, BandwidthUsage]:
         """
@@ -42,7 +45,7 @@ class Client(BaseClient):
         if needs_login and not self.has_cookie(options):
             raise RequiresLoginException()
 
-        logging.debug(f"将获取版块：{board_id} 第 {page} 页，将会登陆：{needs_login}")
+        logging.debug(f"将获取版块：{board_id} 第 {page} 页，将会登录：{needs_login}")
 
         def request_fn(): 
             threads, bandwidth_usage = self._get_json(
@@ -78,7 +81,7 @@ class Client(BaseClient):
         if needs_login and not self.has_cookie(options):
             raise RequiresLoginException()
 
-        logging.debug(f"将获取串：{id} 第 {page} 页，将会登陆：{needs_login}")
+        logging.debug(f"将获取串：{id} 第 {page} 页，将会登录：{needs_login}")
 
         def request_fn():
             thread_page_json, bandwidth_usage = self._get_json(
@@ -117,7 +120,7 @@ class Client(BaseClient):
 
     def page_requires_login(self, page: int, gate_keeper: int, options: RequestOptions = {}) -> bool:
         """
-        判断页面是否需要登陆才能正常阅读。
+        判断页面是否需要登录才能正常阅读。
 
         Parameters
         ----------
@@ -130,7 +133,7 @@ class Client(BaseClient):
 
         Returns
         -------
-        是否需要登陆。
+        是否需要登录。
         """
 
         login_policy = self.get_login_policy(options)

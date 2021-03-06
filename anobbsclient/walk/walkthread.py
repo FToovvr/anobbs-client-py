@@ -82,7 +82,7 @@ class ThreadPageReverseWalker:
         Raises
         ------
         RequiresLoginException
-            如果需要登陆，但并未登陆。
+            如果需要登录，但并未登录。
 
         GatekeepedException
             如果检测到「卡99」。

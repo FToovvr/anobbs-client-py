@@ -4,17 +4,27 @@ from dataclasses import dataclass
 
 @dataclass
 class ShouldNotReachException(Exception):
+    """
+    到达了不应该到达的代码时会抛出的异常。
+    """
     pass
 
 
 @dataclass
 class ClientException(Exception):
+    """
+    与客户端有关的异常。
+    """
 
     message: str
+    """记载可读的异常信息。"""
 
 
 @dataclass
 class NoPermissionException(ClientException):
+    """
+    进行没有权限的操作时会抛出的异常。
+    """
 
     def __init__(self, extra_message: Optional[str] = None):
         message = "无操作权限"
@@ -27,6 +37,9 @@ class NoPermissionException(ClientException):
 
 @dataclass
 class RequiresLoginException(NoPermissionException):
+    """
+    需要登录而未登录时会抛出的异常。
+    """
 
     def __init__(self):
         super(RequiresLoginException, self).__init__(
@@ -36,7 +49,9 @@ class RequiresLoginException(NoPermissionException):
 
 @dataclass
 class GatekeptException(NoPermissionException):
-    # TODO: extends ClientException
+    """
+    发现出现「卡99」现象时会抛出的异常。
+    """
 
     context: str
     current_page_number: int
@@ -53,8 +68,18 @@ class GatekeptException(NoPermissionException):
 
 
 @dataclass
+class ResourceNotExistsException(ClientException):
+    def __init__(self):
+        super(ResourceNotExistsException, self).__init__(
+            message="目标资源不存在",
+        )
+
+
+@dataclass
 class UnreachableLowerBoundPostIDException(ClientException):
-    # TODO: extends ClientException?
+    """
+    在从后向前遍历时串，发生「到达串的头部时还没有到达下界」这一诡异现象时抛出的异常？
+    """
 
     lower_bound_post_id: int
 
@@ -68,7 +93,6 @@ class UnreachableLowerBoundPostIDException(ClientException):
 
 @dataclass
 class UnexpectedLowerBoundPostIDException(ClientException):
-    # TODO: extends ClientException?
 
     current_page_number: int
     expected_lower_bound_page_number: int
@@ -83,10 +107,3 @@ class UnexpectedLowerBoundPostIDException(ClientException):
         self.expected_lower_bound_page_number = expected_lower_bound_page_number
         self.lower_bound_post_id = lower_bound_post_id
 
-
-@dataclass
-class ResourceNotExistsException(ClientException):
-    def __init__(self):
-        super(ResourceNotExistsException, self).__init__(
-            message="目标资源不存在",
-        )
