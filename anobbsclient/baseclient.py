@@ -5,6 +5,7 @@ import requests
 from http.cookiejar import CookieJar
 
 from .options import RequestOptions, UserCookie, LoginPolicy, LuweiCookieFormat
+from .exceptions import RequiresLoginException
 
 
 @dataclass
@@ -38,7 +39,7 @@ class BaseClient:
     FIXME: 线程不安全。
     """
 
-    def _make_session(self, options: RequestOptions, with_login: bool = False) -> requests.Session:
+    def _make_session(self, options: RequestOptions, needs_login: bool = False) -> requests.Session:
         """
         根据请求设置创建一个新的会话。
 
@@ -46,18 +47,20 @@ class BaseClient:
         ----------
         options : RequestOptions
             请求设置。
-        with_login : bool
-            登陆与否。
+        needs_login : bool
+            是否需要携带饼干。
 
         Returns
         -------
         新的会话。
         """
+
         session = requests.Session()
-        self.__setup_headers(session, options=options, with_login=with_login)
+        self.__setup_headers(session, options=options,
+                             needs_login=needs_login)
         return session
 
-    def __setup_headers(self, session, options: RequestOptions, with_login: bool = False):
+    def __setup_headers(self, session, options: RequestOptions, needs_login: bool = False):
         """
         根据请求选项设置好会话的 headers。
 
@@ -67,16 +70,16 @@ class BaseClient:
             会话。
         options : RequestOptions
             请求设置。
-        with_login : bool
-            登陆与否。
+        needs_login : bool
+            是否需要登陆。
         """
 
-        if with_login:
+        if needs_login:
             # 若需要登陆，配置 cookies
 
             user_cookie = self.get_user_cookie(options)
-            # TODO: 应该抛异常
-            assert(user_cookie != None)
+            if user_cookie is None:
+                raise RequiresLoginException()
 
             if user_cookie.userhash in self.cookiejar_store:
                 cookiejar = self.cookiejar_store[user_cookie.userhash]
