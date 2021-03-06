@@ -44,26 +44,18 @@ class Client(BaseClient):
 
         logging.debug(f"将获取版块：{board_id} 第 {page} 页，将会登陆：{needs_login}")
 
-        def fn(): return self.__get_board_page(
-            board_id, page=page, options=options, needs_login=needs_login)
+        def request_fn(): 
+            threads, bandwidth_usage = self._get_json(
+                path=f'/Api/showf', options=options, needs_login=needs_login,
+                id=board_id,
+                page=page,
+            )
+            return list(map(lambda thread: BoardThread(thread), threads)), bandwidth_usage
 
         (board_page, bandwidth_usage) = try_request(
-            fn, f"获取版块 {id} 第 {page} 页", self.get_max_attempts(options))
+            request_fn, f"获取版块 {id} 第 {page} 页", self.get_max_attempts(options))
 
         return board_page, bandwidth_usage
-
-    def __get_board_page(self, board_id: int, page: int, options: RequestOptions = {}, needs_login: bool = False) -> Tuple[Board, BandwidthUsage]:
-
-        session = self._make_session(options=options, needs_login=needs_login)
-
-        queries = OrderedDict()
-        queries["id"] = board_id
-        queries["page"] = page
-        self._add_common_parameters(queries)
-        url = f"https://{self.host}/Api/showf?" + \
-            urllib.parse.urlencode(queries)
-        threads, bandwidth_usage = get_json(session, url)
-        return list(map(lambda thread: BoardThread(thread), threads)), bandwidth_usage
 
     def get_thread_page(self, id: int, page: int, options: RequestOptions = {}, for_analysis: bool = False) -> Tuple[Thread, BandwidthUsage]:
         """
@@ -88,11 +80,18 @@ class Client(BaseClient):
 
         logging.debug(f"将获取串：{id} 第 {page} 页，将会登陆：{needs_login}")
 
-        def fn(): return self.__get_thread_page(
-            id, page=page, options=options, needs_login=needs_login)
+        def request_fn():
+            thread_page_json, bandwidth_usage = self._get_json(
+                path=f'/Api/thread/id/{id}', options=options, needs_login=needs_login,
+                page=page,
+            )
+            if thread_page_json == '该主题不存在':
+                raise ResourceNotExistsException()
+
+            return Thread(thread_page_json), bandwidth_usage
 
         (thread_page, bandwidth_usage) = try_request(
-            fn, f"获取串 {id} 第 {page} 页", self.get_max_attempts(options))
+            request_fn, f"获取串 {id} 第 {page} 页", self.get_max_attempts(options))
 
         if for_analysis:
             thread_page.replies = list(filter(
@@ -100,25 +99,21 @@ class Client(BaseClient):
 
         return thread_page, bandwidth_usage
 
-    def __get_thread_page(self, id: int, page: int, options: RequestOptions, needs_login: bool = False) -> Tuple[Thread, BandwidthUsage]:
-
+    def _get_json(self, path: str, options: RequestOptions, needs_login: bool = False, **queries) -> Tuple[OrderedDict, BandwidthUsage]:
         session = self._make_session(options=options, needs_login=needs_login)
+        url = self._make_request_url(path=path, **queries)
+        return get_json(session, url)
 
-        queries = OrderedDict()
-        queries["page"] = page
-        self._add_common_parameters(queries)
-        url = f"https://{self.host}/Api/thread/id/{id}?" + \
-            urllib.parse.urlencode(queries)
-        thread_page_json, bandwidth_usage = get_json(session, url)
-        if thread_page_json == '该主题不存在':
-            raise ResourceNotExistsException()
+    def _make_request_url(self, path: str, **queries) -> str:
+        queries = OrderedDict(queries)
 
-        return Thread(thread_page_json), bandwidth_usage
-
-    def _add_common_parameters(self, queries: OrderedDict):
+        # 添加通用参数
         if self.appid != None:
             queries["appid"] = self.appid
         queries["__t"] = current_timestamp_ms_offset_to_utc8()
+
+        base_url = f'https://{self.host}{path}'
+        return base_url + '?' + urllib.parse.urlencode(queries)
 
     def page_requires_login(self, page: int, gate_keeper: int, options: RequestOptions = {}) -> bool:
         """

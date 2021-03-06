@@ -38,7 +38,7 @@ def try_request(fn: Callable[[], Any], description: str, max_attempts: int) -> A
     for i in range(1, max_attempts + 1):
         try:
             return fn()
-        except (requests.exceptions.ConnectionError, requests.exceptions.Timeout) as _e:
+        except (requests.exceptions.ConnectionError, requests.exceptions.Timeout) as e:
             # 对于连接、超时等可以重试的问题进行重试
             msg = f'执行「{description}」失败：{e}。'
             if i < max_attempts:
