@@ -19,37 +19,29 @@ from .exceptions import ShouldNotReachException, RequiresLoginException, NoPermi
 
 
 class BandwidthUsage(NamedTuple):
+    """
+    用于封装与客户端操作产生的流量有关的信息。
+    """
     uploaded: int
+    """上传字节数"""
     downloaded: int
+    """下载字节数"""
 
 
 @dataclass
 class Client:
-    """
-    AnoBBS 客户端
-
-    Fields
-    ------
-    user_agent : str
-        User Agent。
-
-    host : str
-        API服务器的主机名。
-
-    appid : str
-        appid。
-
-    default_request_options : RequestOptions
-        请求的默认设置。
-    """
 
     user_agent: str
+    """发送请求时要使用的 User Agent。"""
 
     host: str
+    """要请求的 API 服务器的主机名。"""
 
     appid: Optional[str] = None
+    """appid。"""
 
     default_request_options: RequestOptions = field(default_factory=dict)
+    """发送请求时的默认请求选项。"""
 
     __session: requests.Session = field(
         init=False,
@@ -58,14 +50,14 @@ class Client:
 
     def get_board_page(self, board_id: int, page: int, options: RequestOptions = {}) -> Tuple[Board, BandwidthUsage]:
         """
-        获取指定串的指定页。
+        获取指定板块的指定页。
 
+        Parameters
+        ----------
         board_id : int
             版块 ID。
-
         page : int
             页数。
-
         options : RequestOptions
             请求选项。
         """
@@ -108,15 +100,14 @@ class Client:
         """
         获取指定串的指定页。
 
+        Parameters
+        ----------
         id : int
             串号。
-
         page : int
             页数。
-
         options : RequestOptions
             请求选项。
-
         for_analysis : bool
             如果为真，将会过滤掉与分析无关的内容，以方便分析。
         """
