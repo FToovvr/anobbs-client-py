@@ -14,8 +14,12 @@ local_tz = tz.gettz("Asia/Shanghai")
 
 @dataclass
 class Post:
-    # TODO: 回应比串多了一个目前用途未知的 ``status`` 字段，
-    # 所以回应应该对应单独一个子类？
+    """
+    帖子基类。
+
+    TODO: 回应比串多了一个目前用途未知的 ``status`` 字段，
+          所以回应应该对应单独一个子类？
+    """
 
     _raw: OrderedDict[str, Any]
 
@@ -87,6 +91,11 @@ def _none_if(content, none_mark) -> Optional[Any]:
 
 @dataclass
 class ThreadBody(Post):
+    """
+    串基类。
+
+    串在这里专指「一串帖子」中的头部，即「一楼」。
+    """
 
     _total_reply_count: int
 
@@ -117,7 +126,9 @@ class ThreadBody(Post):
 
 @dataclass
 class ThreadPage(ThreadBody):
-    # TODO: 改名为 ``ThreadPage```
+    """
+    是 ``get_thread_page`` 返回的串页面，包含其自身 body 及该页的各回复帖。
+    """
 
     _replies: List[Post]
 
@@ -158,6 +169,9 @@ class ThreadPage(ThreadBody):
 
 @dataclass
 class BoardThread(ThreadPage):
+    """
+    组成 ``get_board_page`` 返回的各串的 body。
+    """
 
     def __init__(self, data: OrderedDict[str, Any]):
         super(BoardThread, self).__init__(data)
@@ -171,6 +185,9 @@ class BoardThread(ThreadPage):
 
 @dataclass
 class TimelineThread(BoardThread):
+    """
+    暂未使用，预计用于组成时间线。
+    """
 
     def __init__(self, data: OrderedDict[str, Any]):
         super(TimelineThread, self).__init__(data)
