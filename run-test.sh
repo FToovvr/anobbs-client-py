@@ -1,3 +1,3 @@
 #!/usr/bin/env sh
 
-python -m unittest test.simple_test
+python3 -m unittest test.simple_test

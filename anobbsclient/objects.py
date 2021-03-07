@@ -52,15 +52,15 @@ class Post:
         return self._raw["userid"]
 
     @property
-    def name(self) -> str:
+    def name(self) -> Optional[str]:
         return _none_if(self._raw["name"], "无名氏")
 
     @property
-    def email(self) -> str:
+    def email(self) -> Optional[str]:
         return _none_if(self._raw["email"], "")
 
     @property
-    def title(self) -> str:
+    def title(self) -> Optional[str]:
         return _none_if(self._raw["title"], "无标题")
 
     @property
@@ -148,7 +148,8 @@ class Thread(ThreadBody):
     def to_json(self) -> str:
         data = self.raw_copy()
         if self._replies != None:
-            data["replys"] = map(lambda post: post.body, self._replies)
+            data["replys"] = list(
+                map(lambda post: post.raw_copy(), self._replies))
         else:
             data.pop("replys", None)
 

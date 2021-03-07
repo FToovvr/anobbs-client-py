@@ -4,7 +4,7 @@ import unittest
 import logging
 
 import anobbsclient
-from anobbsclient.walk import walkthread
+from anobbsclient.walk import create_walker, ReversalThreadWalkTarget
 
 import os
 import sys
@@ -177,14 +177,13 @@ class SimpleTest(unittest.TestCase):
 
         client = self.new_client()
 
-        walker = walkthread.ThreadPageReverseWalker(
-            client=client,
-            thread_id=29184693,
-            upper_bound_page=3,
-            end_condition=walkthread.LowerBoundPageEndCondition(
-                page=1, page_seen_max_post_id=None,
+        walker = create_walker(
+            target=ReversalThreadWalkTarget(
+                thread_id=29184693,
+                start_page_number=3,
+                gatekeeper_post_id=99999999,
             ),
-            gatekeeper_post_id=99999999,
+            client=client,
         )
 
         page_count, last_page_max_post_id = 0,  None
@@ -195,14 +194,15 @@ class SimpleTest(unittest.TestCase):
                 last_page_max_post_id = page.replies[-1].id
         self.assertEqual(page_count, 3)
 
-        walker = walkthread.ThreadPageReverseWalker(
-            client=client,
-            thread_id=29184693,
-            upper_bound_page=4,
-            end_condition=walkthread.LowerBoundPageEndCondition(
-                page=3, page_seen_max_post_id=last_page_max_post_id,
+        walker = create_walker(
+            target=ReversalThreadWalkTarget(
+                thread_id=29184693,
+                start_page_number=4,
+                gatekeeper_post_id=99999999,
+                stop_before_post_id=last_page_max_post_id,
+                expected_stop_page_number=3,
             ),
-            gatekeeper_post_id=99999999,
+            client=client,
         )
 
         page_count = 0
@@ -218,14 +218,13 @@ class SimpleTest(unittest.TestCase):
         client = self.new_client()
 
         def case_no_login():
-            for (_, _, _) in walkthread.ThreadPageReverseWalker(
-                client=client,
-                thread_id=29184693,
-                upper_bound_page=101,
-                end_condition=walkthread.LowerBoundPageEndCondition(
-                    page=1, page_seen_max_post_id=None,
+            for (_, _, _) in create_walker(
+                target=ReversalThreadWalkTarget(
+                    thread_id=29184693,
+                    start_page_number=101,
+                    gatekeeper_post_id=99999999,
                 ),
-                gatekeeper_post_id=99999999,
+                client=client,
             ):
                 assert(False)
         self.assertRaises(anobbsclient.RequiresLoginException, case_no_login)
@@ -238,15 +237,14 @@ class SimpleTest(unittest.TestCase):
         gatekeeper_post_id = list(page100.replies)[-1].id
 
         def case_gatekept():
-            for (_, _, _) in walkthread.ThreadPageReverseWalker(
-                client=client,
-                thread_id=29184693,
-                upper_bound_page=101,
-                end_condition=walkthread.LowerBoundPageEndCondition(
-                    page=1, page_seen_max_post_id=None,
+            for (_, _, _) in create_walker(
+                target=ReversalThreadWalkTarget(
+                    thread_id=29184693,
+                    start_page_number=101,
+                    gatekeeper_post_id=gatekeeper_post_id,
                 ),
-                gatekeeper_post_id=gatekeeper_post_id,
-                request_options={
+                client=client,
+                options={
                     "user_cookie": anobbsclient.UserCookie(
                         userhash="",  # 无效的饼干
                     ),
@@ -265,15 +263,16 @@ class SimpleTest(unittest.TestCase):
         gatekeeper_post_id = list(page100.replies)[-1].id
 
         page_count = 0
-        for (n, page, _) in walkthread.ThreadPageReverseWalker(
-            client=client,
-            thread_id=29184693,
-            upper_bound_page=101,
-            end_condition=walkthread.LowerBoundPageEndCondition(
-                page=100, page_seen_max_post_id=gatekeeper_post_id,
+        for (n, page, _) in create_walker(
+            target=ReversalThreadWalkTarget(
+                thread_id=29184693,
+                start_page_number=101,
+                gatekeeper_post_id=gatekeeper_post_id,
+                stop_before_post_id=gatekeeper_post_id,
+                expected_stop_page_number=100,
             ),
-            gatekeeper_post_id=gatekeeper_post_id,
-            request_options={
+            client=client,
+            options={
                 "user_cookie": self.user_cookie,
             },
         ):
