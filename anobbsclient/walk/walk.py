@@ -8,7 +8,6 @@ def create_walker(target, client: anobbsclient.Client, options: anobbsclient.Req
     if options is None:
         options = {}
     current_pn = target.start_page_number
-    last_page = None
     while True:
         # 获取页面
         (current_page, usage) = target.get_page(current_pn, client, options)
@@ -27,4 +26,3 @@ def create_walker(target, client: anobbsclient.Client, options: anobbsclient.Req
 
         # 准备翻到下一页
         current_pn = next_pn
-        last_page = current_page

@@ -116,20 +116,20 @@ class ThreadBody(Post):
 
 
 @dataclass
-class Thread(ThreadBody):
+class ThreadPage(ThreadBody):
     # TODO: 改名为 ``ThreadPage```
 
     _replies: List[Post]
 
     def __init__(self, data: OrderedDict[str, Any]):
-        super(Thread, self).__init__(data)
+        super(ThreadPage, self).__init__(data)
 
         self._replies = list(map(lambda post: Post(post), self._raw["replys"]))
         # 不 pop 来保持顺序
         self._raw["replys"] = None
 
     def raw_copy(self) -> OrderedDict[str, Any]:
-        copy = super(Thread, self).raw_copy(_keeps_replies_slot=True)
+        copy = super(ThreadPage, self).raw_copy(_keeps_replies_slot=True)
         copy["replys"] = self.replies
         return copy
 
@@ -157,7 +157,7 @@ class Thread(ThreadBody):
 
 
 @dataclass
-class BoardThread(Thread):
+class BoardThread(ThreadPage):
 
     def __init__(self, data: OrderedDict[str, Any]):
         super(BoardThread, self).__init__(data)

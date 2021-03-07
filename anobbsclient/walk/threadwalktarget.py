@@ -44,7 +44,7 @@ class ReversalThreadWalkTarget:
 
     def get_page(self, current_page_number: int,
                  client: anobbsclient.Client, options: anobbsclient.RequestOptions
-                 ) -> Tuple[anobbsclient.Thread, anobbsclient.BandwidthUsage]:
+                 ) -> Tuple[anobbsclient.ThreadPage, anobbsclient.BandwidthUsage]:
         """
         获取当前页数对应的页面内容并返回。
 
@@ -63,7 +63,7 @@ class ReversalThreadWalkTarget:
         )
 
     def check_gatekept(self, current_page_number: int,
-                       current_page: anobbsclient.Thread,
+                       current_page: anobbsclient.ThreadPage,
                        client: anobbsclient.Client, options: anobbsclient.RequestOptions,
                        g: Dict[str, Any]):
         """
@@ -75,7 +75,7 @@ class ReversalThreadWalkTarget:
         ----------
         current_page_number : int
             当前页数。
-        current_page : anobbsclient.Thread
+        current_page : anobbsclient.ThreadPage
             当前获取到的页。
         client : anobbsclient.Client
             用于发送请求的客户端。
@@ -157,7 +157,7 @@ class ReversalThreadWalkTarget:
         return current_page_number - 1
 
     # TODO
-    def should_stop(self, current_page: anobbsclient.Thread, next_page_number: int,
+    def should_stop(self, current_page: anobbsclient.ThreadPage, next_page_number: int,
                     g: Dict[str, Any]) -> bool:
         """
         返回是否已经达成停止条件。
@@ -167,7 +167,7 @@ class ReversalThreadWalkTarget:
 
         Parameters
         ----------
-        current_page : anobbsclient.Thread
+        current_page : anobbsclient.ThreadPage
             当前获取到的页。
         next_page_number : int
             将要获取的下一页的页数。

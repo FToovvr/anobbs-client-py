@@ -15,7 +15,7 @@ from .baseclient import BaseClient
 from .requestutils import BandwidthUsage, try_request, get_json
 from .usercookie import UserCookie
 from .options import RequestOptions, LoginPolicy, LuweiCookieFormat
-from .objects import Board, Thread, BoardThread
+from .objects import Board, ThreadPage, BoardThread
 from .utils import current_timestamp_ms_offset_to_utc8
 from .exceptions import ShouldNotReachException, RequiresLoginException, NoPermissionException, ResourceNotExistsException
 
@@ -47,7 +47,7 @@ class Client(BaseClient):
 
         logging.debug(f"将获取版块：{board_id} 第 {page} 页，将会登录：{needs_login}")
 
-        def request_fn(): 
+        def request_fn():
             threads, bandwidth_usage = self._get_json(
                 path=f'/Api/showf', options=options, needs_login=needs_login,
                 id=board_id,
@@ -60,7 +60,7 @@ class Client(BaseClient):
 
         return board_page, bandwidth_usage
 
-    def get_thread_page(self, id: int, page: int, options: RequestOptions = {}, for_analysis: bool = False) -> Tuple[Thread, BandwidthUsage]:
+    def get_thread_page(self, id: int, page: int, options: RequestOptions = {}, for_analysis: bool = False) -> Tuple[ThreadPage, BandwidthUsage]:
         """
         获取指定串的指定页。
 
@@ -91,7 +91,7 @@ class Client(BaseClient):
             if thread_page_json == '该主题不存在':
                 raise ResourceNotExistsException()
 
-            return Thread(thread_page_json), bandwidth_usage
+            return ThreadPage(thread_page_json), bandwidth_usage
 
         (thread_page, bandwidth_usage) = try_request(
             request_fn, f"获取串 {id} 第 {page} 页", self.get_max_attempts(options))
