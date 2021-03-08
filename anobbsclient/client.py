@@ -17,7 +17,7 @@ from .usercookie import UserCookie
 from .options import RequestOptions, LoginPolicy, LuweiCookieFormat
 from .objects import Board, ThreadPage, BoardThread
 from .utils import current_timestamp_ms_offset_to_utc8
-from .exceptions import ShouldNotReachException, RequiresLoginException, NoPermissionException, ResourceNotExistsException
+from .exceptions import ShouldNotReachException, RequiresLoginException, NoPermissionException, ResourceNotExistsException, GatekeptException
 
 
 @dataclass
@@ -160,9 +160,16 @@ class Client(BaseClient):
         )
 
     def board_page_requires_login(self, page: int, options: RequestOptions = {}) -> bool:
+        gk_pn = self.get_board_gatekeeper_page_number(options)
+        if page > gk_pn:  # TODO: 放在这里是不是不太合适？
+            raise GatekeptException(
+                context='check_if_board_page_requires_login',
+                current_page_number=None,
+                gatekeeper_post_id=None,
+            )
         return self.page_requires_login(
             page=page,
-            gate_keeper=self.get_board_gatekeeper_page_number(options),
+            gate_keeper=gk_pn,
             options=options,
         )
 

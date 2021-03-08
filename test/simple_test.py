@@ -2,9 +2,12 @@ from typing import NamedTuple
 
 import unittest
 import logging
+from datetime import datetime, timedelta
+
+from dateutil import tz
 
 import anobbsclient
-from anobbsclient.walk import create_walker, ReversalThreadWalkTarget
+from anobbsclient.walk import create_walker, ReversalThreadWalkTarget, BoardWalkTarget
 
 import os
 import sys
@@ -180,8 +183,8 @@ class SimpleTest(unittest.TestCase):
         walker = create_walker(
             target=ReversalThreadWalkTarget(
                 thread_id=29184693,
-                start_page_number=3,
                 gatekeeper_post_id=99999999,
+                start_page_number=3,
             ),
             client=client,
         )
@@ -197,8 +200,8 @@ class SimpleTest(unittest.TestCase):
         walker = create_walker(
             target=ReversalThreadWalkTarget(
                 thread_id=29184693,
-                start_page_number=4,
                 gatekeeper_post_id=99999999,
+                start_page_number=4,
                 stop_before_post_id=last_page_max_post_id,
                 expected_stop_page_number=3,
             ),
@@ -221,8 +224,8 @@ class SimpleTest(unittest.TestCase):
             for (_, _, _) in create_walker(
                 target=ReversalThreadWalkTarget(
                     thread_id=29184693,
-                    start_page_number=101,
                     gatekeeper_post_id=99999999,
+                    start_page_number=101,
                 ),
                 client=client,
             ):
@@ -240,8 +243,8 @@ class SimpleTest(unittest.TestCase):
             for (_, _, _) in create_walker(
                 target=ReversalThreadWalkTarget(
                     thread_id=29184693,
-                    start_page_number=101,
                     gatekeeper_post_id=gatekeeper_post_id,
+                    start_page_number=101,
                 ),
                 client=client,
                 options={
@@ -266,8 +269,8 @@ class SimpleTest(unittest.TestCase):
         for (n, page, _) in create_walker(
             target=ReversalThreadWalkTarget(
                 thread_id=29184693,
-                start_page_number=101,
                 gatekeeper_post_id=gatekeeper_post_id,
+                start_page_number=101,
                 stop_before_post_id=gatekeeper_post_id,
                 expected_stop_page_number=100,
             ),
@@ -281,3 +284,24 @@ class SimpleTest(unittest.TestCase):
             if n == 100:
                 self.assertEqual(len(page.replies), 0)
         self.assertEqual(page_count, 2)
+
+    def test_board_page_walker(self):
+
+        client = self.new_client()
+
+        now = datetime.now(tz.gettz("Asia/Shanghai"))
+        two_hours_ago = now - timedelta(hours=2)
+
+        for (n, page, _) in create_walker(
+            target=BoardWalkTarget(
+                board_id=111,
+                start_page_number=1,
+                stop_before_datetime=two_hours_ago,
+            ),
+            client=client,
+        ):
+            print(f'page {n}')
+            page: anobbsclient.BoardThread = page
+            for thread in page:
+                self.assertGreaterEqual(
+                    thread.last_modified_time, two_hours_ago)

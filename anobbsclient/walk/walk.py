@@ -1,10 +1,11 @@
-
 import anobbsclient
 
+from .walktarget import WalkTargetInterface
 
-def create_walker(target, client: anobbsclient.Client, options: anobbsclient.RequestOptions = None):
 
-    g = {}
+def create_walker(target: WalkTargetInterface, client: anobbsclient.Client, options: anobbsclient.RequestOptions = None):
+
+    g = target.create_state()
     if options is None:
         options = {}
     current_pn = target.start_page_number
@@ -13,9 +14,10 @@ def create_walker(target, client: anobbsclient.Client, options: anobbsclient.Req
         (current_page, usage) = target.get_page(current_pn, client, options)
         # 检查是否卡页（卡页则抛异常）
         target.check_gatekept(current_pn, current_page, client, options, g)
+        # TODO: 分离出 preprocess 进行如剪裁回复之类的操作？
         # 检查是否满足终止条件
-        next_pn = target.get_next_page_number(current_pn)
-        should_stop = target.should_stop(current_page, next_pn, g)
+        should_stop = target.should_stop(
+            current_page, current_pn, client, options, g)
 
         # 产出当前页
         yield (current_pn, current_page, usage)
@@ -24,5 +26,5 @@ def create_walker(target, client: anobbsclient.Client, options: anobbsclient.Req
         if should_stop:
             break
 
-        # 准备翻到下一页
-        current_pn = next_pn
+        # 翻到下一页
+        current_pn = target.get_next_page_number(current_pn, g)

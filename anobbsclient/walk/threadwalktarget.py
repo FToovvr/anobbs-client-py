@@ -3,9 +3,11 @@ from dataclasses import dataclass, field
 
 import anobbsclient
 
+from .walktarget import WalkTargetInterface
+
 
 @dataclass(frozen=True)
-class ReversalThreadWalkTarget:
+class ReversalThreadWalkTarget(WalkTargetInterface):
     """
     从后向前，一路游荡到第一页，或者遇到的回复的串号/发布时间比预定的小/早时结束。
 
@@ -15,15 +17,15 @@ class ReversalThreadWalkTarget:
     thread_id: int
     """要遍历的串的串号。"""
 
-    start_page_number: int
-    """遍历开始的页数。"""
-
     gatekeeper_post_id: int
     """
     不需要登录能看到的串号最大的串的串号。
     
     用于检测是否发生卡页。
     """
+
+    # overriding
+    start_page_number: int
 
     stop_before_post_id: Optional[int] = field(default=None)
     """
@@ -42,6 +44,11 @@ class ReversalThreadWalkTarget:
     服务器返回了这么遍历会更靠后才会遇到的页面。
     """
 
+    # overriding
+    def create_state(self) -> Dict[str, Any]:
+        return dict()
+
+    # overriding
     def get_page(self, current_page_number: int,
                  client: anobbsclient.Client, options: anobbsclient.RequestOptions
                  ) -> Tuple[anobbsclient.ThreadPage, anobbsclient.BandwidthUsage]:
@@ -62,6 +69,7 @@ class ReversalThreadWalkTarget:
             options=options, for_analysis=True,
         )
 
+    # overriding
     def check_gatekept(self, current_page_number: int,
                        current_page: anobbsclient.ThreadPage,
                        client: anobbsclient.Client, options: anobbsclient.RequestOptions,
@@ -108,6 +116,24 @@ class ReversalThreadWalkTarget:
                 gatekeeper_post_id=self.gatekeeper_post_id,
             )
 
+    # overriding
+    def should_stop(self, current_page: anobbsclient.ThreadPage, current_page_number: int,
+                    client: anobbsclient.Client, options: anobbsclient.RequestOptions,
+                    g: Dict[str, Any]) -> bool:
+        """
+        返回是否已经达成停止条件。
+        会在获取页面后被调用。
+
+        TODO: 考虑将时间作为停止条件。
+
+        Parameters
+        ----------
+        current_page : anobbsclient.ThreadPage
+            当前获取到的页。
+        next_page_number : int
+            当前页数。
+        """
+
         # 如果有设置停止串号，
         # 则试着找到停止串号（如果没有，则比它小且离它最近的串号）在回复中的 index
         stop_i = None
@@ -119,7 +145,6 @@ class ReversalThreadWalkTarget:
                     break
 
         if stop_i != None:  # 找到了上述串号
-            g['found_stop_post_id'] = True
             if self.expected_stop_page_number is not None \
                     and current_page_number > self.expected_stop_page_number:
                 # 明明还早，却遇到/越过了停止串号，代表卡页了
@@ -144,8 +169,14 @@ class ReversalThreadWalkTarget:
             # 截掉更早的回复。
             # TODO: 允许自定义是否截掉
             current_page.replies = current_page.replies[stop_i+1:]
+            return True
 
-    def get_next_page_number(self, current_page_number: int):
+        if current_page_number == 1:
+            # 越过第1页
+            return True
+
+    # overriding
+    def get_next_page_number(self, current_page_number: int, g: Dict[str, Any]):
         """
         获取将要获取的下一页的页数。
 
@@ -155,27 +186,3 @@ class ReversalThreadWalkTarget:
             当前页的页数。
         """
         return current_page_number - 1
-
-    # TODO
-    def should_stop(self, current_page: anobbsclient.ThreadPage, next_page_number: int,
-                    g: Dict[str, Any]) -> bool:
-        """
-        返回是否已经达成停止条件。
-        会在获取页面后被调用。
-
-        TODO: 考虑将时间作为停止条件。
-
-        Parameters
-        ----------
-        current_page : anobbsclient.ThreadPage
-            当前获取到的页。
-        next_page_number : int
-            将要获取的下一页的页数。
-        """
-
-        if next_page_number == 0:
-            # 越过第1页
-            return True
-        if g.get('found_stop_post_id', False):
-            # 到达停止串号前
-            return True

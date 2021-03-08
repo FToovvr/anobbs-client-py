@@ -1,5 +1,5 @@
 from typing import Optional
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 
 
 @dataclass
@@ -54,8 +54,13 @@ class GatekeptException(NoPermissionException):
     """
 
     context: str
-    current_page_number: int
-    gatekeeper_post_id: int
+    current_page_number: Optional[int]
+    gatekeeper_post_id: Optional[int] = field(default=None)
+    """
+    对于版块，此处为空。
+
+    TODO: 依版块/串细分
+    """
 
     def __init__(self, context: str, current_page_number: int, gatekeeper_post_id: int):
         super(GatekeptException, self).__init__(
@@ -106,4 +111,3 @@ class UnexpectedLowerBoundPostIDException(ClientException):
         self.current_page_number = current_page_number
         self.expected_lower_bound_page_number = expected_lower_bound_page_number
         self.lower_bound_post_id = lower_bound_post_id
-
