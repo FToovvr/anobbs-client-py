@@ -6,6 +6,11 @@ import anobbsclient
 from .walktarget import WalkTargetInterface
 
 
+@dataclass
+class ReversalThreadWalkTargetState():
+    last_page_min_id: Optional[int] = None
+
+
 @dataclass(frozen=True)
 class ReversalThreadWalkTarget(WalkTargetInterface):
     """
@@ -45,8 +50,8 @@ class ReversalThreadWalkTarget(WalkTargetInterface):
     """
 
     # overriding
-    def create_state(self) -> Dict[str, Any]:
-        return dict()
+    def create_state(self) -> ReversalThreadWalkTargetState:
+        return ReversalThreadWalkTargetState()
 
     # overriding
     def get_page(self, current_page_number: int,
@@ -73,7 +78,7 @@ class ReversalThreadWalkTarget(WalkTargetInterface):
     def check_gatekept(self, current_page_number: int,
                        current_page: anobbsclient.ThreadPage,
                        client: anobbsclient.Client, options: anobbsclient.RequestOptions,
-                       g: Dict[str, Any]):
+                       g: ReversalThreadWalkTargetState):
         """
         检查是否发生卡页。
 
@@ -94,15 +99,14 @@ class ReversalThreadWalkTarget(WalkTargetInterface):
         # 通过检查本页与上一页是否一致来检测是否卡页。
         # 当前页应该至少有1串比上一页的所有串号要小。
         # 极端情况下，在获取两页期间，小于等于本页的地方有19串被删会导致误判，这里不考虑
-        last_page_min_id = g.get('last_page_min_id', None)
-        if last_page_min_id is not None \
-                and current_page.replies[0].id >= last_page_min_id:
+        if g.last_page_min_id is not None \
+                and current_page.replies[0].id >= g.last_page_min_id:
             raise anobbsclient.GatekeptException(
                 context="previous_page_min_post_id",
                 current_page_number=current_page_number,
-                gatekeeper_post_id=last_page_min_id,
+                gatekeeper_post_id=g.last_page_min_id,
             )
-        g['last_page_min_id'] = current_page.replies[0].id
+        g.last_page_min_id = current_page.replies[0].id
 
         # 如果确认此页不登录会卡页，
         # 那通过对比「守门串号」（即不登录能看到的最后一串的串号）来检测是否卡页。
@@ -119,7 +123,7 @@ class ReversalThreadWalkTarget(WalkTargetInterface):
     # overriding
     def should_stop(self, current_page: anobbsclient.ThreadPage, current_page_number: int,
                     client: anobbsclient.Client, options: anobbsclient.RequestOptions,
-                    g: Dict[str, Any]) -> bool:
+                    g: ReversalThreadWalkTargetState) -> bool:
         """
         返回是否已经达成停止条件。
         会在获取页面后被调用。
@@ -176,7 +180,7 @@ class ReversalThreadWalkTarget(WalkTargetInterface):
             return True
 
     # overriding
-    def get_next_page_number(self, current_page_number: int, g: Dict[str, Any]):
+    def get_next_page_number(self, current_page_number: int, g: ReversalThreadWalkTargetState):
         """
         获取将要获取的下一页的页数。
 
