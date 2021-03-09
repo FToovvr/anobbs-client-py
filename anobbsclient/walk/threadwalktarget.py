@@ -1,6 +1,8 @@
 from typing import Optional, Tuple, OrderedDict, Dict, Any
 from dataclasses import dataclass, field
 
+from datetime import datetime
+
 import anobbsclient
 
 from .walktarget import WalkTargetInterface
@@ -22,11 +24,14 @@ class ReversalThreadWalkTarget(WalkTargetInterface):
     thread_id: int
     """要遍历的串的串号。"""
 
-    gatekeeper_post_id: int
+    gatekeeper_post_id: Optional[int]
     """
-    不需要登录能看到的串号最大的串的串号。
-    
+    不需要登录能看到的串中最大的串号。
+
     用于检测是否发生卡页。
+
+    如果全程无需登录，无需设置；
+    如果需要登录否则可能卡页，应设为「守门页」（一般为第100页）最后一串的串号。
     """
 
     # overriding
@@ -34,10 +39,11 @@ class ReversalThreadWalkTarget(WalkTargetInterface):
 
     stop_before_post_id: Optional[int] = field(default=None)
     """
-    停止串号。
+    串号的停止条件。
     在看到小于等于此串号的回复时停止。
 
-    如果为 ``None``，则会一路游荡到第一页。
+    停止条件互相排斥，只可设定1处。
+    如果没有停止条件，则会一路游荡到第一页。
     """
 
     expected_stop_page_number: Optional[int] = field(default=None)
@@ -48,6 +54,22 @@ class ReversalThreadWalkTarget(WalkTargetInterface):
     则「反向遍历时先于预期遇到/超越此串号」只可能是出现「卡页」现象，
     服务器返回了这么遍历会更靠后才会遇到的页面。
     """
+
+    stop_before_datetime: Optional[datetime] = field(default=None)
+    """
+    发布时间的停止条件。
+    在看到早于此时间的回复时停止。
+    """
+
+    def __post_init__(self):
+        # 确保停止条件只有1处
+        stop_condition_count = 0
+        if self.stop_before_post_id is not None:
+            stop_condition_count += 1
+        if self.stop_before_datetime is not None:
+            stop_condition_count += 1
+        if stop_condition_count > 1:
+            raise ValueError()  # TODO: 更明确的异常
 
     # overriding
     def create_state(self) -> ReversalThreadWalkTargetState:
@@ -112,12 +134,27 @@ class ReversalThreadWalkTarget(WalkTargetInterface):
         # 那通过对比「守门串号」（即不登录能看到的最后一串的串号）来检测是否卡页。
         # 少数情况下，遍历期间有19串被删导致「守门页」的串号要比起初获得的「守门串号」大，
         # 不过自从遍历第二页起就可以用前面对比两页的方法检测是否发生卡页，因此不是大问题
-        if client.thread_page_requires_login(current_page_number) \
+        if self.gatekeeper_post_id is not None \
+                and client.thread_page_requires_login(current_page_number) \
                 and current_page.replies[0].id <= self.gatekeeper_post_id:
             raise anobbsclient.GatekeptException(
                 context="gatekeeper_post_id",
                 current_page_number=current_page_number,
                 gatekeeper_post_id=self.gatekeeper_post_id,
+            )
+
+        # 如果 expected_stop_page_number 超过守门页，就用 stop_before_post_id 判断是否卡页
+        if self.expected_stop_page_number is not None \
+                and current_page_number > self.expected_stop_page_number \
+                and (True or client.thread_page_requires_login(self.expected_stop_page_number)) \
+                and current_page.replies[0].id <= self.expected_stop_page_number:
+            # 当前页面还没到预期停止页面，却得到了串号不大于停止串号的串，代表卡页了。
+            # 当然，极端情况下，在页数小于等于预期停止页数的页面连删19串以上，
+            # 会导致此验证法失效，这里不考虑
+            raise anobbsclient.GatekeptException(
+                context="lower_bound_post_id",
+                current_page_number=current_page_number,
+                gatekeeper_post_id=self.stop_before_post_id,
             )
 
     # overriding
@@ -140,40 +177,22 @@ class ReversalThreadWalkTarget(WalkTargetInterface):
 
         # 如果有设置停止串号，
         # 则试着找到停止串号（如果没有，则比它小且离它最近的串号）在回复中的 index
-        stop_i = None
-        if self.stop_before_post_id is not None:
+        if (self.stop_before_post_id or self.stop_before_datetime) is not None:
+            stop_i = None
             for (i, reply) in enumerate(current_page.replies):
-                if reply.id <= self.stop_before_post_id:
+                if False \
+                    or (self.stop_before_post_id is not None
+                        and reply.id <= self.stop_before_post_id) \
+                    or (self.stop_before_datetime is not None
+                        and reply.created_at < self.stop_before_datetime):
                     stop_i = i
                 else:
                     break
-
-        if stop_i != None:  # 找到了上述串号
-            if self.expected_stop_page_number is not None \
-                    and current_page_number > self.expected_stop_page_number:
-                # 明明还早，却遇到/越过了停止串号，代表卡页了
-
-                if self.expected_stop_page_number == client.get_thread_gatekeeper_page_number():
-                    # 预期停止的页面正好是「守门页」，解释了为何发生卡页。
-                    # 当然，极端情况可能存在删串导致此刻「守门页」已经不包含该串号，
-                    # 那这里就无法判断，以其他方法补充判断。
-                    # （其他方法指用采集前新获取的「守门串号」判断，除非采集期间连删19楼不会有问题）
-                    raise anobbsclient.GatekeptException(
-                        context="lower_bound_post_id",
-                        current_page_number=current_page_number,
-                        gatekeeper_post_id=self.stop_before_post_id,
-                    )
-                else:  # TODO: 可能是卡页也可能是遇到了神秘状况，先抛个不一样的异常糊弄过去
-                    raise anobbsclient.UnexpectedLowerBoundPostIDException(
-                        current_page_number=current_page_number,
-                        expected_lower_bound_page_number=self.expected_stop_page_number,
-                        lower_bound_post_id=self.stop_before_post_id,
-                    )
-
-            # 截掉更早的回复。
-            # TODO: 允许自定义是否截掉
-            current_page.replies = current_page.replies[stop_i+1:]
-            return True
+            if stop_i is not None:  # 找到了上述串号
+                # 截掉更早的回复。
+                # TODO: 允许自定义是否截掉
+                current_page.replies = current_page.replies[stop_i+1:]
+                return True
 
         if current_page_number == 1:
             # 越过第1页

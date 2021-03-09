@@ -15,6 +15,8 @@ import sys
 logging.basicConfig(stream=sys.stderr)
 logging.getLogger().setLevel(logging.DEBUG)
 
+local_tz = tz.gettz("Asia/Shanghai")
+
 
 class SimpleTest(unittest.TestCase):
     @classmethod
@@ -289,7 +291,7 @@ class SimpleTest(unittest.TestCase):
 
         client = self.new_client()
 
-        now = datetime.now(tz.gettz("Asia/Shanghai"))
+        now = datetime.now(local_tz)
         two_hours_ago = now - timedelta(hours=2)
 
         for (n, page, _) in create_walker(
@@ -300,8 +302,32 @@ class SimpleTest(unittest.TestCase):
             ),
             client=client,
         ):
-            print(f'page {n}')
             page: anobbsclient.BoardThread = page
             for thread in page:
                 self.assertGreaterEqual(
                     thread.last_modified_time, two_hours_ago)
+
+    def test_thread_page_reverse_walker_stop_before_datetime(self):
+
+        client = self.new_client()
+
+        page_count = 0
+        for (n, page, _) in create_walker(
+            target=ReversalThreadWalkTarget(
+                thread_id=29184693,
+                gatekeeper_post_id=99999999,
+                start_page_number=98,
+                stop_before_datetime=datetime(  # 2020-08-09(日)22:00:21
+                    year=2020, month=8, day=9,
+                    hour=22, minute=00, second=21,
+                    tzinfo=local_tz,
+                )
+            ),
+            client=client,
+        ):
+            page: anobbsclient.ThreadPage = page
+            self.assertTrue(n in [96, 97, 98])
+            page_count += 1
+            if n == 96:
+                self.assertEqual(page.replies[0].id, 29279607)
+        self.assertEqual(page_count, 3)
