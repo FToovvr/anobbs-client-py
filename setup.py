@@ -11,7 +11,7 @@ setuptools.setup(
     description="Simple AnoBBS API wrapper",
     long_description=long_description,
     long_description_content_type="text/markdown",
-    url="https://github.com/FToovvr/anobbs-api-wrapper-py",
+    url="https://github.com/FToovvr/anobbs-client-py",
     packages=setuptools.find_packages(exclude=("test",)),
     classifiers=[
         "Programming Language :: Python :: 3",
