@@ -72,12 +72,20 @@ class Post:
         return self._raw["content"]
 
     @property
+    def sage_mark(self) -> str:
+        return self._raw["sage"]
+
+    @property
     def marked_sage(self) -> bool:
-        return self._raw["sage"] != "0"
+        return self.sage_mark != "0"
+
+    @property
+    def admin_mark(self) -> str:
+        return self._raw["admin"]
 
     @property
     def marked_admin(self) -> bool:
-        return self._raw["admin"] != "0"
+        return self.admin_mark != "0"
 
     def to_json(self) -> str:
         return json.dumps(self._raw, indent=2, ensure_ascii=False)
