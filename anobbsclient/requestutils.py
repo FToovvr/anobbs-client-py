@@ -45,6 +45,7 @@ def try_request(fn: Callable[[], Any], description: str, max_attempts: int) -> A
                 logging.warning(msg + f'将会重试。尝试次数：{i}/{max_attempts}')
             else:
                 logging.error(msg + f'已经失败 {max_attempts} 次，超过最大尝试次数，放弃')
+                raise e
         except Exception as e:
             msg = f'执行「{description}」失败：{e}。将不重试，放弃'
             if isinstance(e, requests.exceptions.HTTPError):
@@ -56,9 +57,7 @@ def try_request(fn: Callable[[], Any], description: str, max_attempts: int) -> A
                 # pylint: disable=maybe-no-member
                 dump = requests_toolbelt.utils.dump.dump_all(e.response)
                 msg += "。dump：" + dump.decode('utf-8')
-
             logging.error(msg)
-
             raise e
 
 
