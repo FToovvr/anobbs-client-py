@@ -56,7 +56,7 @@ class Client(BaseClient):
             return list(map(lambda thread: BoardThread(thread), threads)), bandwidth_usage
 
         (board_page, bandwidth_usage) = try_request(
-            request_fn, f"获取版块 {id} 第 {page} 页", self.get_max_attempts(options))
+            request_fn, f"获取版块 {board_id} 第 {page} 页", self.get_max_attempts(options))
 
         return board_page, bandwidth_usage
 
