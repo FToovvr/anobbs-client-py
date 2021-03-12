@@ -1,10 +1,13 @@
-from typing import Optional, Dict, Any, Union, Literal, NamedTuple
+from typing import Optional, Dict, OrderedDict, Any, Union, Literal, Tuple, NamedTuple
 from dataclasses import dataclass, field
 
 import requests
+import urllib
 from http.cookiejar import CookieJar
 
 from .options import RequestOptions, UserCookie, LoginPolicy, LuweiCookieFormat
+from .requestutils import BandwidthUsage, get_json
+from .utils import current_timestamp_ms_offset_to_utc8
 from .exceptions import RequiresLoginException
 
 
@@ -113,6 +116,22 @@ class BaseClient:
             "Accept-Language": "en-us",
             "Accept-Encoding": "gzip, deflate, br",
         })
+
+    def _get_json(self, path: str, options: RequestOptions, needs_login: bool = False, **queries) -> Tuple[OrderedDict, BandwidthUsage]:
+        session = self._make_session(options=options, needs_login=needs_login)
+        url = self._make_request_url(path=path, **queries)
+        return get_json(session, url)
+
+    def _make_request_url(self, path: str, **queries) -> str:
+        queries = OrderedDict(queries)
+
+        # 添加通用参数
+        if self.appid != None:
+            queries["appid"] = self.appid
+        queries["__t"] = current_timestamp_ms_offset_to_utc8()
+
+        base_url = f'https://{self.host}{path}'
+        return base_url + '?' + urllib.parse.urlencode(queries)
 
     def _get_option_value(self, external_options: RequestOptions, key: str, default: Any = None) -> Any:
         """

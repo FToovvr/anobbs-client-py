@@ -3,7 +3,6 @@ from dataclasses import dataclass, field
 
 import time
 import logging
-import urllib
 import urllib3
 import json
 import io
@@ -12,11 +11,10 @@ import requests
 import requests_toolbelt
 
 from .baseclient import BaseClient
-from .requestutils import BandwidthUsage, try_request, get_json
+from .requestutils import BandwidthUsage, try_request
 from .usercookie import UserCookie
 from .options import RequestOptions, LoginPolicy, LuweiCookieFormat
 from .objects import Board, ThreadPage, BoardThread
-from .utils import current_timestamp_ms_offset_to_utc8
 from .exceptions import ShouldNotReachException, RequiresLoginException, NoPermissionException, ResourceNotExistsException, GatekeptException
 
 
@@ -101,22 +99,6 @@ class Client(BaseClient):
                 lambda post: post.user_id != "芦苇", thread_page.replies))
 
         return thread_page, bandwidth_usage
-
-    def _get_json(self, path: str, options: RequestOptions, needs_login: bool = False, **queries) -> Tuple[OrderedDict, BandwidthUsage]:
-        session = self._make_session(options=options, needs_login=needs_login)
-        url = self._make_request_url(path=path, **queries)
-        return get_json(session, url)
-
-    def _make_request_url(self, path: str, **queries) -> str:
-        queries = OrderedDict(queries)
-
-        # 添加通用参数
-        if self.appid != None:
-            queries["appid"] = self.appid
-        queries["__t"] = current_timestamp_ms_offset_to_utc8()
-
-        base_url = f'https://{self.host}{path}'
-        return base_url + '?' + urllib.parse.urlencode(queries)
 
     def page_requires_login(self, page: int, gate_keeper: int, options: RequestOptions = {}) -> bool:
         """
