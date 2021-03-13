@@ -111,3 +111,31 @@ class UnexpectedLowerBoundPostIDException(ClientException):
         self.current_page_number = current_page_number
         self.expected_lower_bound_page_number = expected_lower_bound_page_number
         self.lower_bound_post_id = lower_bound_post_id
+
+
+@dataclass
+class UnknownResponseException(ClientException):
+
+    def __init__(self, response_body: str):
+        super(UnknownResponseException, self).__init__(
+            message="未知响应内容",
+        )
+
+        self.response_body = response_body
+
+    response_body: str
+
+
+@dataclass
+class ReplyException(ClientException):
+
+    def __init__(self, raw_error: str, raw_detail: str):
+        super(ReplyException, self).__init__(
+            message="发表回应失败",
+        )
+
+        self.raw_error = raw_error
+        self.raw_detail = raw_detail
+
+    raw_error: str
+    raw_detail: str

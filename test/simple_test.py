@@ -294,7 +294,7 @@ class SimpleTest(unittest.TestCase):
         now = datetime.now(local_tz)
         two_hours_ago = now - timedelta(hours=2)
 
-        for (n, page, _) in create_walker(
+        for (_, page, _) in create_walker(
             target=BoardWalkTarget(
                 board_id=111,
                 start_page_number=1,
@@ -331,3 +331,12 @@ class SimpleTest(unittest.TestCase):
             if n == 96:
                 self.assertEqual(page.replies[0].id, 29279607)
         self.assertEqual(page_count, 3)
+
+    def test_reply_thread(self):
+        self.skipTest("向服务器上传内容")
+
+        client = self.new_client()
+
+        client.reply_thread("test\n1234", to_thread_id=35783128, options={
+            'user_cookie': self.user_cookie,
+        })

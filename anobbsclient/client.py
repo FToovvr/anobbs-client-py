@@ -9,13 +9,14 @@ import io
 
 import requests
 import requests_toolbelt
+from bs4 import BeautifulSoup
 
 from .baseclient import BaseClient
 from .requestutils import BandwidthUsage, try_request
 from .usercookie import UserCookie
 from .options import RequestOptions, LoginPolicy, LuweiCookieFormat
 from .objects import Board, ThreadPage, BoardThread
-from .exceptions import ShouldNotReachException, RequiresLoginException, NoPermissionException, ResourceNotExistsException, GatekeptException
+from .exceptions import ShouldNotReachException, RequiresLoginException, NoPermissionException, ResourceNotExistsException, GatekeptException, UnknownResponseException, ReplyException
 
 
 @dataclass
@@ -160,3 +161,55 @@ class Client(BaseClient):
 
     def get_board_gatekeeper_page_number(self, options: RequestOptions = {}) -> int:
         return self._get_option_value(options, "board_gatekeeper_page_number", 100)
+
+    def reply_thread(self, content: str, to_thread_id: int,
+                     name: Optional[str] = None, email: Optional[str] = None, title: Optional[str] = None,
+                     options: RequestOptions = {}):
+        session = self._make_session(options, needs_login=True)
+        data: OrderedDict[str, str] = OrderedDict()
+        if self.appid is not None:
+            data['appid'] = (None, self.appid)
+        data['content'] = (None, content)
+        data['name'] = (None, name if name is not None else "")
+        data['email'] = (None, email if email is not None else "")
+        data['title'] = (None, title if title is not None else "")
+        data['resto'] = (None, str(to_thread_id))
+
+        resp_body = None
+        with session.post(url=f'https://{self.host}/Home/Forum/doReplyThread.html', files=data) as resp:
+            resp.raise_for_status()
+            resp_body = resp.text
+
+        doc = BeautifulSoup(resp_body)
+        sys_msg_div = doc.find('div', attrs={'class': 'system-message'})
+        if sys_msg_div is None:
+            raise UnknownResponseException(response_body=resp.text)
+
+        success_divs = sys_msg_div.find_all('p', attrs={'class': 'success'})
+        if len(success_divs) != 0:
+            return
+
+        error_divs = sys_msg_div.find_all('p', attrs={'class': 'error'})
+        if len(error_divs) == 0:
+            raise UnknownResponseException(response_body=resp.text)
+
+        raw_error = error_divs[0].text
+
+        raw_detail = None
+        detail_divs = sys_msg_div.find_all('p', attrs={'class': 'detail'})
+        if len(detail_divs) != 0:
+            raw_detail = detail_divs[0].text
+            if raw_detail == "":
+                raw_detail = None
+
+        raise ReplyException(raw_error=raw_error, raw_detail=raw_detail)
+
+        # <div class="system-message">
+        # <h1>:)</h1>
+        # <p class="success">回复成功</p>
+        # <p class="detail"></p>
+
+        # <div class="system-message">
+        # <h1>:(</h1>
+        # <p class="error">没有选定回复的帖子</p>
+        # <p class="detail"></p>
