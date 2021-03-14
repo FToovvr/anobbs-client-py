@@ -2,7 +2,7 @@
 
 AnoBBS（A岛所用匿名版架构）API 的 Python 封装库。
 
-功能随随个人需要增加。
+功能随个人需要增加。
 
 注意⚠️：由于本库出发点的项目没有多线程需求，所有本库当前只以单线程使用为目的设计。虽然每个请求都奢侈地专门创建了一个新的 Session，但共用的 CookieJar 并非线程安全。
 
@@ -15,10 +15,17 @@ AnoBBS（A岛所用匿名版架构）API 的 Python 封装库。
     * 遍历
         * [x] 反向遍历串页面
         * [x] 遍历版块页面
-* [ ] 发布串/发布回应
+* [ ] 发布
+    * [ ] 串
+    * [x] 回应
 * [ ] 添加订阅/删除订阅
 * [x] 装载饼干
 * [ ] …
+
+## 术语
+
+* 「卡页」「卡99」
+    * 访问串的100页之后的页面，响应的会是100页的内容。
 
 ## 示例
 
@@ -26,20 +33,15 @@ AnoBBS（A岛所用匿名版架构）API 的 Python 封装库。
 
 下面都是些最基础的例子，剩下的就让源代码自己去解释吧 (ゝ∀･)
 
-## 术语
-
-* 「卡页」「卡99」
-    * 访问串的100页之后的页面，响应的会是100页的内容。
-
 ### 创建客户端
 
 ``` python
 client = anobbsclient.Client(
     # 客户端的 User-Agent
     user_agent='…',
-    # 如 'adnmb3.com'
+    # 目标服务器的主机名，如 'adnmb3.com'
     host='…',
-    # 客户端的 appid，可空
+    # 客户端的 appid，可为 `None`
     appid='…',
     # 与单次请求相关的一些选项，发送请求时可以选择覆盖这些选项
     default_request_options={
@@ -72,9 +74,24 @@ print(luwei_thread.content) #=> '这是芦苇'
 ### 获取版块内容
 
 ```python
-zong1 = client.get_board_page(4, page=1)
+g_board = client.get_board_page(4, page=1)
 
-print(zong1[0].user_id) #=> 'ATM'
+print(g_board[0].user_id) #=> 'ATM'
+```
+
+### 发布回应
+
+```python
+try:
+    client.reply_thread(
+        "正文内容", to_thread_id=999999999999,
+        title="标题（可选）", name="名称（可选）",
+        email="邮箱（可选）",
+    )
+except anobbsclient.ReplyException as e:
+    # 服务器不接受所发回应
+    print(e.raw_error, e.raw_detail)
+    raise e
 ```
 
 ### 反向遍历串页面
