@@ -180,7 +180,7 @@ class Client(BaseClient):
             resp.raise_for_status()
             resp_body = resp.text
 
-        doc = BeautifulSoup(resp_body)
+        doc = BeautifulSoup(resp_body, features='html.parser')
         sys_msg_div = doc.find('div', attrs={'class': 'system-message'})
         if sys_msg_div is None:
             raise UnknownResponseException(response_body=resp.text)
