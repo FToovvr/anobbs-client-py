@@ -2,9 +2,15 @@
 
 AnoBBS（A岛所用匿名版架构）API 的 Python 封装库。
 
+[![GitHub license](https://img.shields.io/github/license/FToovvr/anobbs-client-py.svg)](https://github.com/FToovvr/anobbs-client-py/blob/master/LICENSE)
+[![PyPI pyversions](https://img.shields.io/pypi/pyversions/anobbs-client.svg)](https://pypi.python.org/pypi/anobbs-client/)
+[![PyPI version shields.io](https://img.shields.io/pypi/v/anobbs-client.svg)](https://pypi.python.org/pypi/anobbs-client/)
+[![GitHub issues](https://img.shields.io/github/issues/FToovvr/anobbs-client-py.svg)](https://GitHub.com/FToovvr/anobbs-client-py/issues/)
+
+
 功能随个人需要增加。
 
-注意⚠️：由于本库出发点的项目没有多线程需求，所有本库当前只以单线程使用为目的设计。虽然每个请求都奢侈地专门创建了一个新的 Session，但共用的 CookieJar 并非线程安全。
+注意⚠️：由于本库出发点的项目没有多线程需求，所以本库当前只以单线程使用为目的设计。虽然每个请求都奢侈地专门创建了一个新的 Session，但共用的 CookieJar 并非线程安全。
 
 ## 实现功能
 
@@ -29,7 +35,7 @@ AnoBBS（A岛所用匿名版架构）API 的 Python 封装库。
 
 ## 示例
 
-毕竟只是自用，感觉也不会有其他人感兴趣，就不在这方面费时间了。
+毕竟只是自用，感觉也不会有其他人感兴趣，就不在这方面多费时间了。
 
 下面都是些最基础的例子，剩下的就让源代码自己去解释吧 (ゝ∀･)
 
