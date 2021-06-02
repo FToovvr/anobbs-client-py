@@ -1,3 +1,9 @@
+# ⚠️ 本库不再维护
+
+本库的维护者在未来不打算继续用 Python 编写会涉及到本库的程序代码，因而决定不再维护本库。
+
+➡️ [本库在 TypeScript 的对应实现](https://github.com/FToovvr/anobbs-client-js)。
+
 # AnoBBS Client
 
 AnoBBS（A岛所用匿名版架构）API 的 Python 封装库。
